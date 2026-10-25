@@ -83,6 +83,50 @@ function make_pdf(string $file, string $text): void {
 	file_put_contents($file, $pdf);
 }
 
+/**
+ * Writes a ZIP-based office document from a map of entries (the first entry is stored uncompressed).
+ *
+ * @param array<string, string> $entries Path inside the archive => content.
+ */
+function make_zip_document(string $file, array $entries): void {
+	$zip = new ZipArchive();
+	if (true !== $zip->open($file, ZipArchive::CREATE | ZipArchive::OVERWRITE)) {
+		fwrite(STDERR, "Cannot create $file\n");
+		exit(1);
+	}
+	$first = true;
+	foreach ($entries as $name => $content) {
+		$zip->addFromString($name, $content);
+		if ($first) {
+			$zip->setCompressionName($name, ZipArchive::CM_STORE);
+			$first = false;
+		}
+	}
+	$zip->close();
+}
+
+/**
+ * Minimal OpenDocument text.
+ */
+function make_odt(string $file, string $text): void {
+	make_zip_document($file, [
+		'mimetype' => 'application/vnd.oasis.opendocument.text',
+		'META-INF/manifest.xml' => '<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.3"><manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/></manifest:manifest>',
+		'content.xml' => '<?xml version="1.0" encoding="UTF-8"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" office:version="1.3"><office:body><office:text><text:p>' . htmlspecialchars($text) . '</text:p></office:text></office:body></office:document-content>',
+	]);
+}
+
+/**
+ * Minimal Word document.
+ */
+function make_docx(string $file, string $text): void {
+	make_zip_document($file, [
+		'[Content_Types].xml' => '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+		'_rels/.rels' => '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+		'word/document.xml' => '<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>' . htmlspecialchars($text) . '</w:t></w:r></w:p></w:body></w:document>',
+	]);
+}
+
 $files = [
 	'content/Photos/landscape.jpg' => fn (string $f) => make_image($f, 1600, 1067, [30, 90, 160], [240, 170, 60], 'Landscape'),
 	'content/Photos/portrait.jpg' => fn (string $f) => make_image($f, 1067, 1600, [20, 120, 80], [200, 230, 120], 'Portrait'),
@@ -92,6 +136,8 @@ $files = [
 	'content/Shared With Linker/harbor.jpg' => fn (string $f) => make_image($f, 1200, 800, [10, 40, 90], [140, 190, 230], 'Harbor'),
 	'content/Shared With Linker/sample.pdf' => fn (string $f) => make_pdf($f, 'WP Nextcloud Linker sample PDF'),
 	'content/Shared With Linker/Subfolder/night.png' => fn (string $f) => make_image($f, 640, 960, [5, 5, 30], [60, 40, 110], 'Night'),
+	'content/Shared With Linker/Subfolder/notes.odt' => fn (string $f) => make_odt($f, 'WP Nextcloud Linker sample text document'),
+	'content/Shared With Linker/Subfolder/Table Report.docx' => fn (string $f) => make_docx($f, 'WP Nextcloud Linker sample Word document'),
 	'content/Hidden Download/no-download.jpg' => fn (string $f) => make_image($f, 1024, 768, [90, 10, 10], [220, 80, 60], 'Hidden download'),
 	'linker/Own/linker-photo.jpg' => fn (string $f) => make_image($f, 1280, 960, [60, 60, 60], [200, 200, 200], 'Linker own'),
 ];
