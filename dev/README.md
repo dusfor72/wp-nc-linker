@@ -30,7 +30,7 @@ uploaded via WebDAV.
 
 | Where | Content | Purpose |
 |---|---|---|
-| `content:/Shared With Linker/` → shared with `linker`, read-only, download allowed | 2 JPEGs, 1 PDF, `Subfolder/` with a PNG | Folders, documents |
+| `content:/Shared With Linker/` → shared with `linker`, read-only, download allowed | 2 JPEGs, 1 PDF, `Subfolder/` with a PNG, an ODT and a DOCX | Folders, documents |
 | `content:/Hidden Download/` → shared with `linker`, download **not** allowed | 1 JPEG | Download restriction (Abnahme 9) |
 | Album `Shared Album` of `content`, shared with `linker` | 2 JPEGs + `large-original.jpg` (~70 MB) | Shared albums, streaming (Abnahme 5) |
 | Album `Group Album` of `content`, shared with group `wpncl-editors` | 1 PNG | Group-shared albums |
