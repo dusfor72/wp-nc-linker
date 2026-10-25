@@ -165,4 +165,105 @@ class Repository {
 		}
 		wp_update_attachment_metadata( $attachment_id, $meta );
 	}
+
+	/**
+	 * Sets the availability status of a linked attachment.
+	 *
+	 * @param int    $attachment_id Attachment ID.
+	 * @param string $status        LinkedFile::STATUS_*.
+	 */
+	public function set_status( int $attachment_id, string $status ): void {
+		update_post_meta( $attachment_id, self::META_STATUS, LinkedFile::STATUS_MISSING === $status ? LinkedFile::STATUS_MISSING : LinkedFile::STATUS_OK );
+		update_post_meta( $attachment_id, self::META_CHECKED, time() );
+	}
+
+	/**
+	 * Linked attachments with the given status, newest first.
+	 *
+	 * @param string $status LinkedFile::STATUS_*.
+	 * @param int    $limit  Maximum number (-1 = all).
+	 * @return list<int>
+	 */
+	public function ids_with_status( string $status, int $limit = -1 ): array {
+		return $this->query(
+			array(
+				'posts_per_page' => $limit,
+				'orderby'        => 'ID',
+				'order'          => 'DESC',
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Admin views and checks only.
+					array(
+						'key'   => self::META_STATUS,
+						'value' => $status,
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Number of linked attachments with the given status.
+	 *
+	 * @param string $status LinkedFile::STATUS_*.
+	 */
+	public function count_with_status( string $status ): int {
+		return count( $this->ids_with_status( $status ) );
+	}
+
+	/**
+	 * Linked attachments, least recently checked first.
+	 *
+	 * @param int $limit Maximum number (-1 = all).
+	 * @return list<int>
+	 */
+	public function ids_to_check( int $limit = -1 ): array {
+		return $this->query(
+			array(
+				'posts_per_page' => $limit,
+				'meta_key'       => self::META_CHECKED, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Checks only.
+				'orderby'        => array(
+					'meta_value_num' => 'ASC',
+					'ID'             => 'ASC',
+				),
+			)
+		);
+	}
+
+	/**
+	 * All linked attachments (IDs).
+	 *
+	 * @return list<int>
+	 */
+	public function all_ids(): array {
+		return $this->query(
+			array(
+				'posts_per_page' => -1,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'meta_key'       => self::META_FILE_ID, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Listing linked attachments only.
+			)
+		);
+	}
+
+	/**
+	 * Queries attachment IDs.
+	 *
+	 * @param array<string, mixed> $args WP_Query arguments.
+	 * @return list<int>
+	 */
+	private function query( array $args ): array {
+		$ids = get_posts(
+			array_merge(
+				array(
+					'post_type'        => 'attachment',
+					'post_status'      => 'any',
+					'fields'           => 'ids',
+					'no_found_rows'    => true,
+					'suppress_filters' => true,
+				),
+				$args
+			)
+		);
+
+		return array_values( array_map( static fn ( $id ): int => is_object( $id ) ? (int) $id->ID : (int) $id, $ids ) );
+	}
 }

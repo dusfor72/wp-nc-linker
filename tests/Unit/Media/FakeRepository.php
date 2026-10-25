@@ -45,6 +45,20 @@ final class FakeRepository extends Repository {
 	 */
 	public array $files = array();
 
+	/**
+	 * Stored statuses by attachment ID.
+	 *
+	 * @var array<int, string>
+	 */
+	public array $statuses = array();
+
+	/**
+	 * IDs returned by ids_to_check().
+	 *
+	 * @var list<int>
+	 */
+	public array $due = array();
+
 	public function get( int $attachment_id ): ?LinkedFile {
 		return $this->files[ $attachment_id ] ?? null;
 	}
@@ -61,5 +75,13 @@ final class FakeRepository extends Repository {
 
 	public function save( int $attachment_id, LinkedFile $file ): void {
 		$this->saved[ $attachment_id ] = $file;
+	}
+
+	public function set_status( int $attachment_id, string $status ): void {
+		$this->statuses[ $attachment_id ] = $status;
+	}
+
+	public function ids_to_check( int $limit = -1 ): array {
+		return -1 === $limit ? $this->due : array_slice( $this->due, 0, $limit );
 	}
 }
