@@ -1,0 +1,40 @@
+# Dependencies
+/node_modules/
+/vendor/
+
+# Build output
+/build/
+/dist/
+*.zip
+
+# Test environment: generated data, certificates, secrets
+/dev/.data/
+/dev/.certs/
+/dev/.secrets/
+/dev/.env
+.env
+.env.*
+!.env.example
+
+# Test and tool caches
+/.phpunit.cache/
+/.phpunit.result.cache
+/.phpcs-cache
+/.phpstan-cache/
+/coverage/
+/test-results/
+/playwright-report/
+/artifacts/
+
+# Local overrides
+/phpcs.xml
+/phpstan.neon
+/phpunit.xml
+*.local.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,19 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	level: 8
+	phpVersion:
+		min: 80100
+		max: 80499
+	paths:
+		- wp-nc-linker.php
+		- src
+		- tests
+	scanFiles:
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
+	bootstrapFiles:
+		- tests/phpstan-bootstrap.php
+	tmpDir: .phpstan-cache
+	# Filter callbacks may return anything; keep runtime type checks of apply_filters() results.
+	treatPhpDocTypesAsCertain: false

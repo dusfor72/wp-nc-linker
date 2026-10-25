@@ -1,0 +1,40 @@
+{
+	"name": "wp-nc-linker/wp-nc-linker",
+	"description": "Use images and documents from Nextcloud folders and albums in the WordPress media library without copying them.",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=8.1"
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"WpNcLinker\\Tests\\": "tests/"
+		}
+	},
+	"config": {
+		"sort-packages": true,
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		},
+		"platform": {
+			"php": "8.1.0"
+		}
+	},
+	"scripts": {
+		"lint": "phpcs",
+		"lint:fix": "phpcbf",
+		"analyse": "phpstan analyse --memory-limit=1G",
+		"test": "phpunit --testsuite unit",
+		"test:integration": "dev/bin/test-integration.sh"
+	},
+	"require-dev": {
+		"brain/monkey": "^2.7",
+		"php-stubs/wp-cli-stubs": "^2.12",
+		"phpcompatibility/phpcompatibility-wp": "^2.1",
+		"phpstan/phpstan": "^2.3",
+		"phpunit/phpunit": "^10.5",
+		"squizlabs/php_codesniffer": "^3.13",
+		"szepeviktor/phpstan-wordpress": "^2.0",
+		"wp-coding-standards/wpcs": "^3.4"
+	}
+}

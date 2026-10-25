@@ -1,0 +1,20 @@
+{
+	"name": "wp-nc-linker",
+	"version": "0.1.0-dev",
+	"private": true,
+	"description": "Use images and documents from Nextcloud folders and albums in the WordPress media library without copying them.",
+	"license": "GPL-2.0-or-later",
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"build": "wp-scripts build --webpack-src-dir=assets/src --output-path=build",
+		"start": "wp-scripts start --webpack-src-dir=assets/src --output-path=build",
+		"lint:js": "wp-scripts lint-js assets/src tests/e2e --no-error-on-unmatched-pattern",
+		"lint:css": "wp-scripts lint-style \"assets/src/**/*.{css,scss}\" --allow-empty-input",
+		"format": "wp-scripts format assets/src tests/e2e"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "35.0.0"
+	}
+}

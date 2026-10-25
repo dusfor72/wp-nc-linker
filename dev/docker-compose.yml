@@ -1,0 +1,80 @@
+# Development and test environment for WP Nextcloud Linker.
+# Start with dev/bin/setup.sh (generates dev/.env, certificates and seed data).
+name: wpncl-dev
+
+services:
+  db:
+    image: mariadb:11.8.6
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?run dev/bin/setup.sh first}
+      WP_DB_PASSWORD: ${WP_DB_PASSWORD:?}
+      NC_DB_PASSWORD: ${NC_DB_PASSWORD:?}
+    volumes:
+      - db:/var/lib/mysql
+      - ./mariadb/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  nextcloud:
+    build: ./nextcloud
+    hostname: nextcloud.test
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${NC_DB_PASSWORD:?}
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: ${NC_ADMIN_PASSWORD:?}
+      NEXTCLOUD_TRUSTED_DOMAINS: nextcloud.test localhost localhost:8443
+      OVERWRITEPROTOCOL: https
+    volumes:
+      - nextcloud:/var/www/html
+      - ./.certs:/etc/wpncl-certs:ro
+    ports:
+      - "127.0.0.1:8443:443"
+    networks:
+      default:
+        aliases:
+          - nextcloud.test
+
+  wordpress:
+    build: ./wordpress
+    depends_on:
+      db:
+        condition: service_healthy
+      nextcloud:
+        condition: service_started
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: ${WP_DB_PASSWORD:?}
+      WORDPRESS_DEBUG: "1"
+      WORDPRESS_CONFIG_EXTRA: |
+        define( 'WP_ENVIRONMENT_TYPE', 'local' );
+        define( 'WP_DEBUG_DISPLAY', false );
+        // PHP messages go to the Apache error log (docker compose logs wordpress).
+        define( 'WP_DEBUG_LOG', false );
+        define( 'DISALLOW_FILE_MODS', true );
+        // The containers have no internet access; only Nextcloud is reachable.
+        define( 'WP_HTTP_BLOCK_EXTERNAL', true );
+        define( 'WP_ACCESSIBLE_HOSTS', 'nextcloud.test' );
+      WP_CLI_CACHE_DIR: /tmp/wp-cli-cache
+    volumes:
+      - wordpress:/var/www/html
+      - ..:/var/www/html/wp-content/plugins/wp-nc-linker:ro
+      - ./wordpress/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+      - ./.certs/ca.crt:/usr/local/share/ca-certificates/wpncl-dev-ca.crt:ro
+    ports:
+      - "127.0.0.1:8080:80"
+
+volumes:
+  db:
+  nextcloud:
+  wordpress:
