@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace WpNcLinker\Media;
 
+use WpNcLinker\Admin\Capabilities;
 use WpNcLinker\Proxy\Url;
 
 defined( 'ABSPATH' ) || exit;
@@ -164,7 +165,7 @@ final class AttachmentFilters {
 	}
 
 	/**
-	 * Media library data: no image editing, plugin information for the dialog.
+	 * Media library data: no image editing; the Nextcloud source only for users who may link files.
 	 *
 	 * @param array<string, mixed> $response   Data.
 	 * @param \WP_Post             $attachment Attachment.
@@ -183,6 +184,9 @@ final class AttachmentFilters {
 		if ( null !== $file->size ) {
 			$response['filesizeInBytes']       = $file->size;
 			$response['filesizeHumanReadable'] = size_format( $file->size );
+		}
+		if ( ! Capabilities::can_select() ) {
+			return $response;
 		}
 		$response['wpncl'] = array(
 			'fileId' => $file->file_id,
