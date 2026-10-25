@@ -97,6 +97,30 @@ class Browser {
 	}
 
 	/**
+	 * Normalised path of a file: at least one segment in folders, "album/{fileId}-{name}" in albums.
+	 *
+	 * @param Area   $area Area.
+	 * @param string $path Raw path.
+	 * @throws BrowseException If the path cannot denote a file.
+	 */
+	public static function normalize_file( Area $area, string $path ): string {
+		try {
+			$segments = DavPath::segments( $path );
+		} catch ( \InvalidArgumentException ) {
+			throw new BrowseException( 'Invalid path.', BrowseException::BAD_REQUEST );
+		}
+
+		$valid = $area->is_album_area()
+			? 2 === count( $segments ) && 1 === preg_match( '/^\d+-./', $segments[1] )
+			: array() !== $segments;
+		if ( ! $valid ) {
+			throw new BrowseException( 'Invalid file path.', BrowseException::BAD_REQUEST );
+		}
+
+		return implode( '/', $segments );
+	}
+
+	/**
 	 * Cache lifetime of listings in seconds.
 	 */
 	private static function cache_ttl(): int {

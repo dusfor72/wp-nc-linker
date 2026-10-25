@@ -183,10 +183,11 @@ function Tile( { item, selected, onOpen, onToggle } ) {
  * The browser.
  *
  * @param {Object}   props
- * @param {string}   props.type                Media library type filter.
- * @param {Function} [props.onSelectionChange] Called with the selected files.
+ * @param {string}   props.type     Media library type filter.
+ * @param {boolean}  props.multiple Whether several files may be selected.
+ * @param {Function} props.onLink   Links the selected files; resolves to errors per file.
  */
-export default function Browser( { type, onSelectionChange } ) {
+export default function Browser( { type, multiple, onLink } ) {
 	const [ area, setArea ] = useState( 'folders' );
 	const [ path, setPath ] = useState( '' );
 	const [ listing, setListing ] = useState( {
@@ -196,7 +197,17 @@ export default function Browser( { type, onSelectionChange } ) {
 	} );
 	const [ selection, setSelection ] = useState( () => new Map() );
 	const [ reloads, setReloads ] = useState( 0 );
+	const [ linking, setLinking ] = useState( false );
+	const [ linkErrors, setLinkErrors ] = useState( [] );
 	const forceRefresh = useRef( false );
+	const mounted = useRef( true );
+
+	useEffect( () => {
+		mounted.current = true;
+		return () => {
+			mounted.current = false;
+		};
+	}, [] );
 
 	useEffect( () => {
 		let cancelled = false;
@@ -242,21 +253,44 @@ export default function Browser( { type, onSelectionChange } ) {
 		};
 	}, [ area, path, type, reloads ] );
 
-	useEffect( () => {
-		onSelectionChange?.( Array.from( selection.values() ) );
-	}, [ selection, onSelectionChange ] );
-
 	const toggle = ( item ) => {
 		setSelection( ( previous ) => {
-			const next = new Map( previous );
 			const key = selectionKey( area, item );
-			if ( next.has( key ) ) {
+			const next = multiple ? new Map( previous ) : new Map();
+			if ( previous.has( key ) ) {
 				next.delete( key );
 			} else {
 				next.set( key, { ...item, area } );
 			}
 			return next;
 		} );
+	};
+
+	const link = async () => {
+		setLinking( true );
+		setLinkErrors( [] );
+		try {
+			const errors = await onLink( Array.from( selection.values() ) );
+			if ( mounted.current ) {
+				setLinkErrors( errors );
+				setSelection( new Map() );
+			}
+		} catch ( error ) {
+			if ( mounted.current ) {
+				setLinkErrors( [
+					{
+						path: '',
+						message:
+							error?.message ||
+							__( 'Linking failed.', 'wp-nc-linker' ),
+					},
+				] );
+			}
+		} finally {
+			if ( mounted.current ) {
+				setLinking( false );
+			}
+		}
 	};
 
 	const openArea = ( id ) => {
@@ -309,6 +343,23 @@ export default function Browser( { type, onSelectionChange } ) {
 				aria-busy={ listing.loading }
 			>
 				{ listing.loading && <Spinner /> }
+				{ linkErrors.length > 0 && (
+					<Notice
+						status="error"
+						onRemove={ () => setLinkErrors( [] ) }
+						className="wpncl-browser__link-errors"
+					>
+						<ul>
+							{ linkErrors.map( ( error, index ) => (
+								<li key={ `${ error.path }-${ index }` }>
+									{ error.path
+										? `${ error.path }: ${ error.message }`
+										: error.message }
+								</li>
+							) ) }
+						</ul>
+					</Notice>
+				) }
 				{ listing.error && (
 					<Notice status="error" isDismissible={ false }>
 						{ listing.error }
@@ -339,6 +390,16 @@ export default function Browser( { type, onSelectionChange } ) {
 			</div>
 
 			<div className="wpncl-browser__footer">
+				<Button
+					variant="primary"
+					onClick={ link }
+					disabled={ selection.size === 0 || linking }
+					isBusy={ linking }
+				>
+					{ linking
+						? __( 'Adding…', 'wp-nc-linker' )
+						: __( 'Add to media library', 'wp-nc-linker' ) }
+				</Button>
 				<span className="wpncl-browser__count" aria-live="polite">
 					{ sprintf(
 						/* translators: %d: number of selected files */
