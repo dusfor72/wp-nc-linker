@@ -17,6 +17,9 @@ async function openEditorAsEditor( browser ) {
 	} );
 	const page = await context.newPage();
 	await page.goto( '/wp-login.php' );
+	// wp-login.php focuses the user field by script shortly after loading; wait for it,
+	// otherwise the focus change can move typed text into the wrong field.
+	await expect( page.locator( '#user_login' ) ).toBeFocused();
 	await page.fill( '#user_login', 'editor' );
 	await page.fill( '#user_pass', EDITOR_PASSWORD );
 	await page.click( '#wp-submit' );
@@ -113,9 +116,8 @@ test.describe( 'Nextcloud tab', () => {
 		}
 
 		await page.getByRole( 'button', { name: 'forest.jpg' } ).click();
-		await page.getByRole( 'button', { name: 'harbor.jpg' } ).click();
 		await expect( page.locator( '.wpncl-browser__count' ) ).toHaveText(
-			'2 files selected'
+			'1 file selected'
 		);
 
 		await areaButton( page, 'My albums' ).click();
@@ -142,7 +144,7 @@ test.describe( 'Nextcloud tab', () => {
 		] );
 		// Selection survives switching areas.
 		await expect( page.locator( '.wpncl-browser__count' ) ).toHaveText(
-			'2 files selected'
+			'1 file selected'
 		);
 
 		await page.context().close();
@@ -172,7 +174,9 @@ test.describe( 'Nextcloud tab', () => {
 		await page.context().close();
 	} );
 
-	test( 'classic "Add Media" frame has the tab', async ( { browser } ) => {
+	test( 'classic "Add Media" frame allows multiple selection', async ( {
+		browser,
+	} ) => {
 		const page = await openEditorAsEditor( browser );
 		await page.evaluate( () =>
 			window.wp.media( { frame: 'post', multiple: true } ).open()
@@ -184,6 +188,96 @@ test.describe( 'Nextcloud tab', () => {
 			'Shared With Linker',
 		] );
 
+		await page
+			.locator( '.wpncl-tile button[data-path="Shared With Linker"]' )
+			.click();
+		await page.getByRole( 'button', { name: 'forest.jpg' } ).click();
+		await page.getByRole( 'button', { name: 'harbor.jpg' } ).click();
+		await areaButton( page, 'Shared albums' ).click();
+		await page
+			.locator( '.wpncl-tile button[data-path="Group Album (content)"]' )
+			.click();
+		await page.getByRole( 'button', { name: 'square.png' } ).click();
+		await expect( page.locator( '.wpncl-browser__count' ) ).toHaveText(
+			'3 files selected'
+		);
+
+		await page
+			.getByRole( 'button', { name: 'Add to media library' } )
+			.click();
+		await expect(
+			page.locator( '.attachments-browser li.attachment.selected' )
+		).toHaveCount( 3 );
+
 		await page.context().close();
+	} );
+
+	test( 'links a file and inserts it in the image block', async ( {
+		browser,
+	} ) => {
+		const page = await openEditorAsEditor( browser );
+		await openNextcloudTab( page, 'core/image' );
+		await page
+			.locator( '.wpncl-tile button[data-path="Shared With Linker"]' )
+			.click();
+		await page.getByRole( 'button', { name: 'harbor.jpg' } ).click();
+		// Single selection in the image block: the second click replaces the first.
+		await page.getByRole( 'button', { name: 'forest.jpg' } ).click();
+		await expect( page.locator( '.wpncl-browser__count' ) ).toHaveText(
+			'1 file selected'
+		);
+
+		await page
+			.getByRole( 'button', { name: 'Add to media library' } )
+			.click();
+		await expect(
+			page.getByRole( 'tab', { name: 'Media Library' } )
+		).toHaveAttribute( 'aria-selected', 'true' );
+		await expect(
+			page.locator( '.attachments-browser li.attachment.selected' )
+		).toHaveCount( 1 );
+
+		await page
+			.getByRole( 'button', { name: 'Select', exact: true } )
+			.click();
+		const image = page
+			.frameLocator( 'iframe[name="editor-canvas"]' )
+			.locator( 'figure.wp-block-image img' );
+		await expect( image ).toHaveAttribute(
+			'src',
+			/\/nextcloud-media\/\d+\/1024x683\/forest-1024x683\.jpg$/
+		);
+
+		await page.context().close();
+	} );
+
+	test( 'links a PDF in the file block', async ( { browser } ) => {
+		const page = await openEditorAsEditor( browser );
+		await openNextcloudTab( page, 'core/file' );
+		await page
+			.locator( '.wpncl-tile button[data-path="Shared With Linker"]' )
+			.click();
+		await page.getByRole( 'button', { name: 'sample.pdf' } ).click();
+		await page
+			.getByRole( 'button', { name: 'Add to media library' } )
+			.click();
+		await page
+			.getByRole( 'button', { name: 'Select', exact: true } )
+			.click();
+
+		const link = page
+			.frameLocator( 'iframe[name="editor-canvas"]' )
+			.locator( '.wp-block-file a' )
+			.first();
+		await expect( link ).toHaveAttribute(
+			'href',
+			/\/nextcloud-media\/\d+\/full\/sample\.pdf$/
+		);
+
+		await page.context().close();
+	} );
+
+	test.afterAll( async ( { requestUtils } ) => {
+		await requestUtils.deleteAllMedia();
 	} );
 } );

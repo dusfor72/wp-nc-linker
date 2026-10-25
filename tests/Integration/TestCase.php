@@ -130,10 +130,11 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 	 * @param array<string, string>     $cookies Cookies.
 	 * @param array<string, mixed>|null $form    Form fields (POST).
 	 * @param list<string>              $extra_headers Additional request headers.
+	 * @param string|null               $raw_body      Raw request body (instead of form fields).
 	 * @phpstan-param non-empty-string $method
 	 * @return array{status: int, body: string, headers: array<string, string>}
 	 */
-	protected function http( string $method, string $path, array $cookies = array(), ?array $form = null, array $extra_headers = array() ): array {
+	protected function http( string $method, string $path, array $cookies = array(), ?array $form = null, array $extra_headers = array(), ?string $raw_body = null ): array {
 		$cookie_header = array();
 		foreach ( $cookies as $name => $value ) {
 			$cookie_header[] = $name . '=' . rawurlencode( $value );
@@ -167,6 +168,8 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 		);
 		if ( null !== $form ) {
 			curl_setopt( $handle, CURLOPT_POSTFIELDS, http_build_query( $form ) );
+		} elseif ( null !== $raw_body ) {
+			curl_setopt( $handle, CURLOPT_POSTFIELDS, $raw_body );
 		}
 
 		$body   = curl_exec( $handle );

@@ -22,7 +22,13 @@ use WpNcLinker\Config\Settings;
 use WpNcLinker\Config\SettingsRegistration;
 use WpNcLinker\Config\SettingsSanitizer;
 use WpNcLinker\Diagnostics\ConnectionTest;
+use WpNcLinker\Media\AttachmentFilters;
+use WpNcLinker\Media\Importer;
+use WpNcLinker\Media\Repository;
+use WpNcLinker\Media\SizeCalculator;
 use WpNcLinker\Nextcloud\Client;
+use WpNcLinker\Proxy\Url;
+use WpNcLinker\Rest\AttachmentsController;
 use WpNcLinker\Rest\BrowseController;
 
 defined( 'ABSPATH' ) || exit;
@@ -70,6 +76,8 @@ final class Plugin {
 		$connection_test = fn (): ConnectionTest => new ConnectionTest( $this->settings(), $this->client() );
 
 		( new BrowseController( new Browser( $this->settings(), $this->client() ), new SeenFiles(), $this->client() ) )->register();
+		( new AttachmentsController( new Importer( $this->settings(), $this->client(), new Repository() ) ) )->register();
+		( new AttachmentFilters( new Repository(), new Url( $this->settings() ), SizeCalculator::create() ) )->register();
 		( new MediaTab() )->register();
 
 		if ( is_admin() ) {
