@@ -10,6 +10,8 @@ parameters:
 		- wp-nc-linker.php
 		- src
 		- tests
+	excludePaths:
+		- tests/Unit/wp-error-stub.php
 	scanFiles:
 		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
 	bootstrapFiles:

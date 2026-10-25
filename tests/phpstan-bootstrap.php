@@ -12,3 +12,4 @@ define( 'WPNCL_PLUGIN_FILE', dirname( __DIR__ ) . '/wp-nc-linker.php' );
 define( 'WPNCL_PLUGIN_DIR', dirname( __DIR__ ) );
 define( 'AUTH_COOKIE', 'wordpress_' );
 define( 'LOGGED_IN_COOKIE', 'wordpress_logged_in_' );
+define( 'WPINC', 'wp-includes' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WordPress core constant.
