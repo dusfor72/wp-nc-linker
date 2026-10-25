@@ -48,8 +48,12 @@ WordPress users: `admin`, `editor`, `author` (has `upload_files`), `subscriber`
 
 ## Development-only adjustments
 
-- `wordpress/mu-plugins/wpncl-dev.php` points the plugin's CA bundle (filter `wpncl_ca_bundle`)
-  to the system store, which contains the development CA. TLS verification stays on.
+- The WordPress container trusts the development CA in its system store (`update-ca-certificates`
+  at start). `wordpress/mu-plugins/wpncl-dev.php` also points the plugin's CA bundle (filter
+  `wpncl_ca_bundle`) to the system store. TLS verification stays on. Note: cURL uses the system
+  CA path in addition to the configured bundle.
+- The Nextcloud container has a second network alias `wrong-name.test` that is not in its
+  certificate; the tests use it to check that TLS verification cannot be bypassed.
 - The containers have no internet access: `WP_HTTP_BLOCK_EXTERNAL` (only `nextcloud.test`
   allowed) and `wordpress/mu-plugins/wpncl-dev-offline.php` disable the wordpress.org update
   checks and language list, which would otherwise log PHP warnings. WordPress runs in `en_US`;
@@ -60,6 +64,10 @@ WordPress users: `admin`, `editor`, `author` (has `upload_files`), `subscriber`
 ```sh
 dev/bin/test-integration.sh   # PHPUnit inside the WordPress container, requests over HTTP like a browser
 ```
+
+The script passes the app password of `linker` to the tests as `WPNCL_TEST_APP_PASSWORD`
+(`dev/.secrets/` itself is only readable on the host). The same steps run in CI (job
+"Integration tests").
 
 The tests create and delete their own users, roles and options. Filters and constants needed in
 web requests (`wpncl_settings_capability`, `WPNCL_*`) are switched through the dev-only

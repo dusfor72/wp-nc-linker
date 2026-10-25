@@ -11,7 +11,7 @@ namespace WpNcLinker\Admin;
 
 use WpNcLinker\Config\MimeTypes;
 use WpNcLinker\Config\Settings;
-use WpNcLinker\Config\SettingsSanitizer;
+use WpNcLinker\Config\SettingsRegistration;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -21,17 +21,17 @@ defined( 'ABSPATH' ) || exit;
 final class SettingsPage {
 
 	public const PAGE  = 'wp-nc-linker';
-	public const GROUP = 'wpncl';
+	public const GROUP = SettingsRegistration::GROUP;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param Settings          $settings  Effective settings.
-	 * @param SettingsSanitizer $sanitizer Sanitize callback of the option.
+	 * @param Settings             $settings        Effective settings.
+	 * @param ConnectionTestAction $connection_test Connection test section.
 	 */
 	public function __construct(
 		private readonly Settings $settings,
-		private readonly SettingsSanitizer $sanitizer,
+		private readonly ConnectionTestAction $connection_test,
 	) {
 	}
 
@@ -40,7 +40,7 @@ final class SettingsPage {
 	 */
 	public function register(): void {
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
-		add_action( 'admin_init', array( $this, 'register_setting' ) );
+		add_action( 'admin_init', array( $this, 'register_fields' ) );
 		add_filter( 'option_page_capability_' . self::GROUP, array( Capabilities::class, 'settings' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( WPNCL_PLUGIN_FILE ), array( $this, 'action_links' ) );
 	}
@@ -59,20 +59,9 @@ final class SettingsPage {
 	}
 
 	/**
-	 * Registers the option, sections and fields.
+	 * Registers the sections and fields (the option itself: SettingsRegistration).
 	 */
-	public function register_setting(): void {
-		register_setting(
-			self::GROUP,
-			Settings::OPTION,
-			array(
-				'type'              => 'array',
-				'sanitize_callback' => array( $this->sanitizer, 'sanitize' ),
-				'show_in_rest'      => false,
-				'default'           => Settings::defaults(),
-			)
-		);
-
+	public function register_fields(): void {
 		add_settings_section(
 			'wpncl_connection',
 			__( 'Connection', 'wp-nc-linker' ),
@@ -131,6 +120,7 @@ final class SettingsPage {
 				submit_button();
 				?>
 			</form>
+			<?php $this->connection_test->render(); ?>
 		</div>
 		<?php
 	}

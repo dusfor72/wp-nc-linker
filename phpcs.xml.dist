@@ -40,6 +40,11 @@
 		</properties>
 	</rule>
 
+	<!-- Generic types (list<…>, array{…}) in @param are checked by PHPStan, not by this sniff. -->
+	<rule ref="Squiz.Commenting.FunctionComment">
+		<exclude name="Squiz.Commenting.FunctionComment.IncorrectTypeHint"/>
+	</rule>
+
 	<!-- PSR-4 class files (src/Plugin.php) instead of class-*.php. -->
 	<rule ref="WordPress.Files.FileName">
 		<exclude-pattern>/src/*</exclude-pattern>
@@ -57,8 +62,11 @@
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
 
-	<!-- Integration tests talk to the web server and write to STDERR directly. -->
+	<!-- Tests read fixtures, talk to the web server and write to STDERR directly. -->
 	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec">
 		<exclude-pattern>/tests/Integration/*</exclude-pattern>
 	</rule>
 </ruleset>

@@ -39,7 +39,7 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 				if ( null === $value ) {
 					delete_option( $name );
 				} else {
-					update_option( $name, $value );
+					$this->update_raw( $name, $value );
 				}
 			}
 			foreach ( $this->created_users as $user_id ) {
@@ -63,8 +63,27 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 			$current                      = get_option( $name, null );
 			$this->saved_options[ $name ] = $current;
 		}
-		remove_all_filters( 'sanitize_option_' . $name );
-		update_option( $name, $value );
+		$this->update_raw( $name, $value );
+	}
+
+	/**
+	 * Writes an option without its sanitize callback (the callback stays registered).
+	 *
+	 * @param string $name  Option name.
+	 * @param mixed  $value Value.
+	 */
+	private function update_raw( string $name, mixed $value ): void {
+		global $wp_filter;
+		$hook  = 'sanitize_option_' . $name;
+		$saved = $wp_filter[ $hook ] ?? null;
+		unset( $wp_filter[ $hook ] );
+		try {
+			update_option( $name, $value );
+		} finally {
+			if ( null !== $saved ) {
+				$wp_filter[ $hook ] = $saved; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the hook removed above.
+			}
+		}
 	}
 
 	/**

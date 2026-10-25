@@ -56,3 +56,31 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint:js
+
+  integration:
+    name: Integration tests (WordPress + Nextcloud)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --no-progress
+      - name: Start and seed the test environment
+        run: dev/bin/setup.sh
+      - name: Run integration tests
+        run: dev/bin/test-integration.sh
+      - name: No PHP notices, warnings or deprecations in the WordPress log
+        run: |
+          set -euo pipefail
+          messages="$(docker compose --project-directory dev -f dev/docker-compose.yml logs wordpress 2>&1 | grep -iE 'php (warning|notice|deprecated|fatal)' || true)"
+          if [ -n "$messages" ]; then
+            echo "$messages"
+            exit 1
+          fi
+      - name: Container logs
+        if: failure()
+        run: docker compose --project-directory dev -f dev/docker-compose.yml logs --tail=200

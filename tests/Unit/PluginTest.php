@@ -29,6 +29,7 @@ final class PluginTest extends TestCase {
 	public function test_register_hooks_textdomain_on_init(): void {
 		Functions\when( 'is_admin' )->justReturn( false );
 		Actions\expectAdded( 'init' )->once()->with( array( Plugin::instance(), 'load_textdomain' ) );
+		Actions\expectAdded( 'init' )->once()->with( \Mockery::type( 'array' ), 0 );
 		Actions\expectAdded( 'admin_menu' )->never();
 
 		Plugin::instance()->register();
@@ -39,6 +40,7 @@ final class PluginTest extends TestCase {
 		Functions\when( 'plugin_basename' )->justReturn( 'wp-nc-linker/wp-nc-linker.php' );
 		Actions\expectAdded( 'admin_menu' )->once();
 		Actions\expectAdded( 'admin_init' )->once();
+		Actions\expectAdded( 'admin_post_wpncl_connection_test' )->once();
 		Filters\expectAdded( 'option_page_capability_wpncl' )->once();
 		Filters\expectAdded( 'plugin_action_links_wp-nc-linker/wp-nc-linker.php' )->once();
 
