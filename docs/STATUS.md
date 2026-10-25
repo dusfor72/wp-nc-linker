@@ -16,17 +16,20 @@ As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open p
 | F7 | Availability check (WP-Cron + `wp nc-linker check`), dashboard widget for missing files | #7 |
 | F8 | Permissions reviewed; Nextcloud source in media library data only with the select capability | #9 |
 | F9/F10 | `wp nc-linker list [--status] [--format]`; `uninstall.php` (`Uninstaller`): options, cron, transients, linked media only with `delete_on_uninstall` | #10 |
+| i18n/README/zip | `de_DE` (Du-Form: PHP + media tab JSON), README, `dev/bin/i18n.sh`, `dev/bin/build-zip.sh`, CI zip job, release workflow on tag `v*` | #11 |
 
 Acceptance tests already covered by integration/E2E tests: 1, 1a, 2–12, 14.
-Still open: 13 (filesystem diff before/after a test run), 15 (release zip with built assets and `de_DE`).
+15 is covered by the CI job "Translations and plugin zip" (zip with built assets and `de_DE`, artifact
+`wp-nc-linker-zip`). Still open: 13 (filesystem diff before/after a test run).
 
 ## Next steps
 
-1. `de_DE` translation (Du-Form): `languages/` (`.po`/`.mo` and JSON for the media tab script).
-2. README (English): configuration via constants, shares with download permission, Memories/Photos
-   note, WP-CLI commands, uninstall behaviour.
-3. Acceptance test 13 (filesystem diff before/after a test run) and release zip (acceptance 15:
-   built assets and `de_DE`, without `dev/`, tests, `node_modules`).
+1. Acceptance test 13: filesystem diff of the WordPress container before/after the test run (CI).
+2. First release: set version (`wp-nc-linker.php` header + `WPNCL_VERSION`, `package.json`), tag
+   `v<version>`; the release workflow publishes the zip. Decide OP-3/OP-4 beforehand if needed.
+3. New or changed strings: run `dev/bin/i18n.sh` (WP-CLI needed; locally the wp-cli.phar from
+   `raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar` works through the proxy) and
+   translate the new entries in `languages/wp-nc-linker-de_DE.po`; CI fails if the files are stale.
 
 F8 review result (entry points): REST `browse`/`thumb`/`attachments` → `permission_callback` with the
 select capability, cookie auth requires the `wp_rest` nonce; parent post only with `edit_post`;

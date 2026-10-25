@@ -1,0 +1,621 @@
+# Copyright (C) 2026 
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: WP Nextcloud Linker 0.1.0-dev\n"
+"Report-Msgid-Bugs-To: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-25T20:30:01+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: wp-nc-linker\n"
+
+#. Plugin Name of the plugin
+#: wp-nc-linker.php
+msgid "WP Nextcloud Linker"
+msgstr ""
+
+#. Description of the plugin
+#: wp-nc-linker.php
+msgid "Use images and documents from Nextcloud folders and albums in the media library without copying them to WordPress."
+msgstr ""
+
+#: src/Admin/ConnectionTestAction.php:56
+msgid "Sorry, you are not allowed to run the connection test."
+msgstr ""
+
+#: src/Admin/ConnectionTestAction.php:76
+msgid "Connection test"
+msgstr ""
+
+#: src/Admin/ConnectionTestAction.php:77
+msgid "Checks the saved settings: server and certificate, login, folders, albums and the preview of a sample image. Save changes first."
+msgstr ""
+
+#: src/Admin/ConnectionTestAction.php:85
+msgid "Test connection"
+msgstr ""
+
+#: src/Admin/ConnectionTestAction.php:110
+msgid "The connection test found problems."
+msgstr ""
+
+#: src/Admin/ConnectionTestAction.php:110
+msgid "The connection works."
+msgstr ""
+
+#: src/Admin/ConnectionTestAction.php:116
+msgid "Check"
+msgstr ""
+
+#: src/Admin/ConnectionTestAction.php:117
+msgid "Result"
+msgstr ""
+
+#: src/Admin/ConnectionTestAction.php:118
+msgid "Details"
+msgstr ""
+
+#: src/Admin/DashboardWidget.php:56
+msgid "Nextcloud: missing files"
+msgstr ""
+
+#. translators: %d: number of media items
+#: src/Admin/DashboardWidget.php:75
+#, php-format
+msgid "%d linked media item cannot be loaded from Nextcloud (deleted, share removed or download no longer allowed). Visitors see a placeholder."
+msgid_plural "%d linked media items cannot be loaded from Nextcloud (deleted, share removed or download no longer allowed). Visitors see a placeholder."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of further media items
+#: src/Admin/DashboardWidget.php:106
+#, php-format
+msgid "And %d more."
+msgstr ""
+
+#. translators: %s: date and time
+#: src/Admin/DashboardWidget.php:114
+#, php-format
+msgid "Last automatic check: %s."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:53
+#: src/Admin/SettingsPage.php:54
+msgid "Nextcloud Linker"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:67
+msgid "Connection"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:71
+#: src/Diagnostics/ConnectionTest.php:106
+msgid "Nextcloud URL"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:72
+msgid "User name"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:73
+msgid "App password"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:75
+msgid "Delivery"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:76
+msgid "Browser cache lifetime"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:77
+msgid "URL prefix"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:78
+#: src/Admin/SettingsPage.php:238
+msgid "Allowed file types"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:80
+msgid "Uninstall"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:81
+msgid "Linked media"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:97
+msgid "Settings"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:110
+msgid "Sorry, you are not allowed to access this page."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:132
+msgid "Use a dedicated Nextcloud account and an app password. Share folders and albums with this account read-only and with download permission; files in shares with hidden download cannot be linked."
+msgstr ""
+
+#. translators: 1: WPNCL_URL, 2: WPNCL_USER, 3: WPNCL_APP_PASSWORD, 4: wp-config.php
+#: src/Admin/SettingsPage.php:136
+#, php-format
+msgid "Alternatively, define %1$s, %2$s and %3$s in %4$s; these values take precedence and cannot be changed here."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:159
+msgid "Base address of the Nextcloud installation (https only), including a sub-path if Nextcloud is not installed at the root."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:194
+msgid "The stored app password can no longer be decrypted (the WordPress salts were changed). Please enter it again."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:196
+msgid "An app password is stored. Leave the field empty to keep it."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:200
+msgid "Remove the stored app password"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:203
+msgid "Create it in Nextcloud under Personal settings → Security → Devices & sessions. It is stored encrypted."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:215
+msgid "seconds"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:217
+msgid "How long browsers may cache delivered images and documents (default: 86400 = 1 day)."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:230
+msgid "First path segment of the public URLs of linked files."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:260
+msgid "Delete all linked media when the plugin is uninstalled"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:262
+msgid "If unchecked, the media items remain and are shown as placeholders."
+msgstr ""
+
+#. translators: %s: constant name
+#: src/Admin/SettingsPage.php:278
+#, php-format
+msgid "Set in wp-config.php (%s), but the value is invalid."
+msgstr ""
+
+#. translators: %s: constant name
+#: src/Admin/SettingsPage.php:284
+#, php-format
+msgid "Set in wp-config.php (%s)."
+msgstr ""
+
+#: src/Config/MimeTypes.php:61
+msgid "JPEG image"
+msgstr ""
+
+#: src/Config/MimeTypes.php:62
+msgid "PNG image"
+msgstr ""
+
+#: src/Config/MimeTypes.php:63
+msgid "GIF image"
+msgstr ""
+
+#: src/Config/MimeTypes.php:64
+msgid "WebP image"
+msgstr ""
+
+#: src/Config/MimeTypes.php:65
+msgid "AVIF image"
+msgstr ""
+
+#: src/Config/MimeTypes.php:66
+msgid "PDF document"
+msgstr ""
+
+#: src/Config/MimeTypes.php:67
+msgid "OpenDocument text (.odt)"
+msgstr ""
+
+#: src/Config/MimeTypes.php:68
+msgid "OpenDocument spreadsheet (.ods)"
+msgstr ""
+
+#: src/Config/MimeTypes.php:69
+msgid "OpenDocument presentation (.odp)"
+msgstr ""
+
+#: src/Config/MimeTypes.php:70
+msgid "Word document (.docx)"
+msgstr ""
+
+#: src/Config/MimeTypes.php:71
+msgid "Excel spreadsheet (.xlsx)"
+msgstr ""
+
+#: src/Config/MimeTypes.php:72
+msgid "PowerPoint presentation (.pptx)"
+msgstr ""
+
+#: src/Config/MimeTypes.php:73
+msgid "Word 97–2003 document (.doc)"
+msgstr ""
+
+#: src/Config/MimeTypes.php:74
+msgid "Excel 97–2003 spreadsheet (.xls)"
+msgstr ""
+
+#: src/Config/MimeTypes.php:75
+msgid "PowerPoint 97–2003 presentation (.ppt)"
+msgstr ""
+
+#: src/Config/SettingsSanitizer.php:61
+msgid "You are not allowed to change the Nextcloud Linker settings."
+msgstr ""
+
+#: src/Config/SettingsSanitizer.php:78
+msgid "The Nextcloud URL must be a valid https:// address without user name, query or fragment."
+msgstr ""
+
+#: src/Config/SettingsSanitizer.php:89
+msgid "The user name contains characters that Nextcloud does not allow."
+msgstr ""
+
+#: src/Config/SettingsSanitizer.php:102
+msgid "The cache lifetime must be a number of seconds between 0 and 31536000."
+msgstr ""
+
+#: src/Config/SettingsSanitizer.php:117
+msgid "The URL prefix may only contain lowercase letters, digits and single hyphens and must not be a WordPress path."
+msgstr ""
+
+#: src/Config/SettingsSanitizer.php:141
+msgid "The app password contains invalid characters."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:78
+#: src/Diagnostics/ConnectionTest.php:103
+msgid "Configuration"
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:78
+msgid "The connection is not configured completely."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:107
+msgid "user name"
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:108
+msgid "app password"
+msgstr ""
+
+#. translators: %s: name of the setting
+#: src/Diagnostics/ConnectionTest.php:113
+#, php-format
+msgid "%s (invalid value in wp-config.php)"
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:124
+msgid "app password (stored value can no longer be decrypted; enter it again)"
+msgstr ""
+
+#. translators: %s: comma-separated list of missing settings
+#: src/Diagnostics/ConnectionTest.php:130
+#, php-format
+msgid "Missing or invalid: %s."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:134
+msgid "URL, user name and app password are set."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:142
+msgid "Server"
+msgstr ""
+
+#. translators: %d: HTTP status code
+#: src/Diagnostics/ConnectionTest.php:158
+#, php-format
+msgid "No Nextcloud installation found at this URL (HTTP %d). Check the address, including a sub-path."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:162
+msgid "Nextcloud is in maintenance mode."
+msgstr ""
+
+#. translators: 1: installed Nextcloud version, 2: tested major version
+#: src/Diagnostics/ConnectionTest.php:170
+#, php-format
+msgid "Nextcloud %1$s is reachable (TLS verified), but older than the tested version %2$d."
+msgstr ""
+
+#. translators: %s: Nextcloud version
+#: src/Diagnostics/ConnectionTest.php:175
+#, php-format
+msgid "Nextcloud %s is reachable (TLS verified)."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:183
+msgid "Login"
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:192
+msgid "Login failed (HTTP 401). Check the user name and the app password. Repeated failed logins slow down further attempts (brute-force protection)."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:193
+msgid "The account was not found (HTTP 404). Enter the account ID, which can differ from the login name or e-mail address."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:201
+msgid "Logged in with the app password."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:211
+#: build/media-tab.js:1
+msgid "Folders"
+msgstr ""
+
+#. translators: %d: number of entries
+#: src/Diagnostics/ConnectionTest.php:228
+#, php-format
+msgid "%d entry in the top level of the file tree."
+msgid_plural "%d entries in the top level of the file tree."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Diagnostics/ConnectionTest.php:243
+msgid "Own albums"
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:243
+#: build/media-tab.js:1
+msgid "Shared albums"
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:253
+msgid "Not available (HTTP 404). Is the Photos app enabled in Nextcloud? Albums cannot be used without it."
+msgstr ""
+
+#. translators: %d: number of albums
+#: src/Diagnostics/ConnectionTest.php:265
+#, php-format
+msgid "%d own album."
+msgid_plural "%d own albums."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of albums
+#: src/Diagnostics/ConnectionTest.php:267
+#, php-format
+msgid "%d album shared with the account (directly or via a group)."
+msgid_plural "%d albums shared with the account (directly or via a group)."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Diagnostics/ConnectionTest.php:280
+msgid "Preview"
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:302
+msgid "Download permission"
+msgstr ""
+
+#. translators: %s: comma-separated list of folder names
+#: src/Diagnostics/ConnectionTest.php:306
+#, php-format
+msgid "Shared without download permission (\"hide download\"): %s. Files in these shares cannot be used. Ask the owner to share them with download permission (read-only is enough)."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:313
+msgid "No image with a preview found in the shared folders or albums."
+msgstr ""
+
+#. translators: 1: file name, 2: file ID
+#: src/Diagnostics/ConnectionTest.php:327
+#, php-format
+msgid "Preview of \"%1$s\" (file ID %2$d) delivered."
+msgstr ""
+
+#. translators: 1: file name, 2: file ID
+#: src/Diagnostics/ConnectionTest.php:333
+#, php-format
+msgid "Nextcloud delivered no preview for \"%1$s\" (file ID %2$d, HTTP 404). Check the preview settings of Nextcloud and the download permission of the share."
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:417
+msgid "Nextcloud sent an invalid WebDAV response."
+msgstr ""
+
+#. translators: 1: HTTP status code, 2: host name
+#: src/Diagnostics/ConnectionTest.php:457
+#, php-format
+msgid "Nextcloud answered with a redirect (HTTP %1$d to %2$s). Enter the final address as Nextcloud URL; redirects are not followed."
+msgstr ""
+
+#. translators: %d: HTTP status code
+#: src/Diagnostics/ConnectionTest.php:459
+#, php-format
+msgid "Nextcloud answered with a redirect (HTTP %d). Enter the final address as Nextcloud URL; redirects are not followed."
+msgstr ""
+
+#. translators: %d: HTTP status code
+#: src/Diagnostics/ConnectionTest.php:469
+#, php-format
+msgid "Unexpected answer from Nextcloud (HTTP %d)."
+msgstr ""
+
+#. translators: %s: technical error message
+#: src/Diagnostics/ConnectionTest.php:480
+#, php-format
+msgid "The TLS certificate of Nextcloud could not be verified: %s"
+msgstr ""
+
+#. translators: %s: technical error message
+#: src/Diagnostics/ConnectionTest.php:482
+#, php-format
+msgid "The host name could not be resolved: %s"
+msgstr ""
+
+#. translators: %s: technical error message
+#: src/Diagnostics/ConnectionTest.php:484
+#, php-format
+msgid "No connection to the server: %s"
+msgstr ""
+
+#. translators: %s: technical error message
+#: src/Diagnostics/ConnectionTest.php:486
+#, php-format
+msgid "The server did not answer in time: %s"
+msgstr ""
+
+#: src/Diagnostics/ConnectionTest.php:487
+msgid "WordPress blocks external requests (WP_HTTP_BLOCK_EXTERNAL). Add the Nextcloud host to WP_ACCESSIBLE_HOSTS in wp-config.php."
+msgstr ""
+
+#. translators: %s: technical error message
+#: src/Diagnostics/ConnectionTest.php:489
+#, php-format
+msgid "Request failed: %s"
+msgstr ""
+
+#: src/Diagnostics/Status.php:28
+msgid "OK"
+msgstr ""
+
+#: src/Diagnostics/Status.php:29
+msgid "Warning"
+msgstr ""
+
+#: src/Diagnostics/Status.php:30
+msgid "Error"
+msgstr ""
+
+#: src/Diagnostics/Status.php:31
+msgid "Skipped"
+msgstr ""
+
+#: src/Media/ImportException.php:48
+msgid "Invalid file reference."
+msgstr ""
+
+#: src/Media/ImportException.php:49
+msgid "The file does not exist (anymore)."
+msgstr ""
+
+#: src/Media/ImportException.php:50
+msgid "This file type is not allowed."
+msgstr ""
+
+#: src/Media/ImportException.php:51
+msgid "The file is shared without download permission."
+msgstr ""
+
+#: src/Media/ImportException.php:52
+#: src/Rest/BrowseController.php:260
+msgid "Nextcloud is not reachable. Please ask an administrator to run the connection test."
+msgstr ""
+
+#: src/Media/ImportException.php:53
+#: src/Rest/BrowseController.php:261
+msgid "Nextcloud sent an unexpected answer."
+msgstr ""
+
+#: src/Rest/BrowseController.php:126
+msgid "Sorry, you are not allowed to browse Nextcloud."
+msgstr ""
+
+#: src/Rest/BrowseController.php:141
+msgid "Invalid area."
+msgstr ""
+
+#: src/Rest/BrowseController.php:190
+msgid "Preview not available."
+msgstr ""
+
+#: src/Rest/BrowseController.php:258
+msgid "Invalid path."
+msgstr ""
+
+#: src/Rest/BrowseController.php:259
+msgid "This folder or album does not exist (anymore)."
+msgstr ""
+
+#: build/media-tab.js:1
+msgid "My albums"
+msgstr ""
+
+#: build/media-tab.js:1
+msgid "Location"
+msgstr ""
+
+#. translators: %s: file name
+#: build/media-tab.js:2
+#, js-format
+msgid "%s is shared without download permission and cannot be used."
+msgstr ""
+
+#. translators: %d: number of photos
+#: build/media-tab.js:3
+#, js-format
+msgid "%d item"
+msgid_plural "%d items"
+msgstr[0] ""
+msgstr[1] ""
+
+#: build/media-tab.js:3
+msgid "Loading failed."
+msgstr ""
+
+#: build/media-tab.js:3
+msgid "Source"
+msgstr ""
+
+#: build/media-tab.js:3
+msgid "Refresh"
+msgstr ""
+
+#: build/media-tab.js:3
+msgid "Nothing to show here."
+msgstr ""
+
+#: build/media-tab.js:3
+msgid "Linking failed."
+msgstr ""
+
+#: build/media-tab.js:3
+msgid "Adding…"
+msgstr ""
+
+#: build/media-tab.js:3
+msgid "Add to media library"
+msgstr ""
+
+#. translators: %d: number of selected files
+#: build/media-tab.js:4
+#, js-format
+msgid "%d file selected"
+msgid_plural "%d files selected"
+msgstr[0] ""
+msgstr[1] ""
+
+#: build/media-tab.js:4
+msgid "Clear selection"
+msgstr ""
+
+#: build/media-tab.js:4
+msgid "Nextcloud"
+msgstr ""
