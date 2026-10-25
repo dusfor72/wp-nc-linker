@@ -26,6 +26,7 @@ final class TranslationTest extends TestCase {
 		try {
 			Plugin::instance()->load_textdomain();
 			$this->assertSame( 'Verbindungstest', __( 'Connection test', 'wp-nc-linker' ) );
+			/* translators: %d: number of albums */
 			$this->assertSame( '2 eigene Alben.', sprintf( _n( '%d own album.', '%d own albums.', 2, 'wp-nc-linker' ), 2 ) );
 
 			wp_register_script( MediaTab::HANDLE, plugins_url( 'build/media-tab.js', WPNCL_PLUGIN_FILE ), array(), WPNCL_VERSION, true );
