@@ -14,25 +14,28 @@ As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open p
 | F5 | Delivery proxy `/{prefix}/{id}/{full\|WxH}/{file}`, streaming, 304, placeholder, relocation | #5 |
 | F6 | Documents (PDF, Office) via file block | #6 |
 | F7 | Availability check (WP-Cron + `wp nc-linker check`), dashboard widget for missing files | #7 |
+| F8 | Permissions reviewed; Nextcloud source in media library data only with the select capability | #9 |
 
 Acceptance tests already covered by integration/E2E tests: 1, 1a, 2–12, 14.
 Still open: 13 (filesystem diff before/after a test run), 15 (release zip with built assets and `de_DE`).
 
 ## Next steps
 
-1. **F8 – permissions:** largely in place already (`src/Admin/Capabilities.php`: filters
-   `wpncl_select_capability` default `upload_files`, `wpncl_settings_capability` default `manage_options`;
-   REST/admin-post check nonce + capability; acceptance 1a and 11 tested). Remaining: review that every
-   entry point (REST routes, admin-post, AJAX, dashboard widget, media tab) checks capability and nonce;
-   add tests only for gaps found.
-2. **F9 – WP-CLI:** `test` and `check` exist (`src/Cli/Command.php`); add `wp nc-linker list`
+1. **F9 – WP-CLI:** `test` and `check` exist (`src/Cli/Command.php`); add `wp nc-linker list`
    (virtual attachments with status, `--format`). `Repository::all_ids()` and `get()` exist.
-3. **F10 – uninstall:** `uninstall.php` removing options (`wpncl_settings`, `Scheduler::options()`),
+2. **F10 – uninstall:** `uninstall.php` removing options (`wpncl_settings`, `Scheduler::options()`),
    cron events (`Scheduler::unschedule()`), transients; virtual attachments only when the setting
-   says so (setting still to add).
-4. `de_DE` translation (Du-Form), README, acceptance test 13, release zip (acceptance 15).
+   says so (the setting `delete_on_uninstall` already exists on the settings page).
+3. `de_DE` translation (Du-Form), README, acceptance test 13, release zip (acceptance 15).
 
-Suggestion: F8–F10 in one PR.
+Suggestion: F9 and F10 in one PR.
+
+F8 review result (entry points): REST `browse`/`thumb`/`attachments` → `permission_callback` with the
+select capability, cookie auth requires the `wp_rest` nonce; parent post only with `edit_post`;
+admin-post connection test → settings capability + `check_admin_referer`; settings → menu, page and
+`option_page_capability_wpncl` (setting not in REST); dashboard widget and media tab → select
+capability; meta keys are protected (`_wpncl_*`); the proxy is public by design (registered
+attachments only). No AJAX handlers of their own.
 
 ## Working mode (agreed with the user, to save credits)
 
