@@ -13,6 +13,7 @@ use WpNcLinker\Diagnostics\CheckResult;
 use WpNcLinker\Diagnostics\ConnectionTest;
 use WpNcLinker\Health\CheckResult as HealthResult;
 use WpNcLinker\Health\Checker;
+use WpNcLinker\Media\LinkedFile;
 use WpNcLinker\Media\Repository;
 use WP_CLI;
 
@@ -72,6 +73,56 @@ final class Command {
 				'synopsis'  => array( self::format_argument() ),
 			)
 		);
+
+		WP_CLI::add_command(
+			'nc-linker list',
+			array( $this, 'list_items' ),
+			array(
+				'shortdesc' => 'Lists the linked media items with their Nextcloud source and the status of the last check.',
+				'synopsis'  => array(
+					array(
+						'type'        => 'assoc',
+						'name'        => 'status',
+						'description' => 'Only items with this status.',
+						'optional'    => true,
+						'options'     => array( LinkedFile::STATUS_OK, LinkedFile::STATUS_MISSING ),
+					),
+					self::format_argument(),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Lists the linked attachments (without contacting Nextcloud).
+	 *
+	 * @param list<string>          $args       Positional arguments.
+	 * @param array<string, string> $assoc_args Named arguments.
+	 */
+	public function list_items( array $args, array $assoc_args ): void {
+		$status = $assoc_args['status'] ?? null;
+		$ids    = null === $status ? $this->repository->all_ids() : $this->repository->ids_with_status( $status );
+		sort( $ids );
+
+		$rows = array();
+		foreach ( $ids as $id ) {
+			$file = $this->repository->get( $id );
+			if ( null === $file ) {
+				continue;
+			}
+			$checked = (int) get_post_meta( $id, Repository::META_CHECKED, true );
+			$rows[]  = array(
+				'id'      => $id,
+				'title'   => get_the_title( $id ),
+				'status'  => $file->status,
+				'mime'    => $file->mime,
+				'source'  => $file->area->value . ':' . $file->path,
+				'file_id' => $file->file_id,
+				'checked' => $checked > 0 ? gmdate( 'Y-m-d H:i:s', $checked ) : '',
+			);
+		}
+
+		WP_CLI\Utils\format_items( $assoc_args['format'] ?? 'table', $rows, array( 'id', 'title', 'status', 'mime', 'source', 'file_id', 'checked' ) );
 	}
 
 	/**
