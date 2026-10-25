@@ -11,7 +11,10 @@ namespace WpNcLinker;
 
 use WpNcLinker\Admin\Capabilities;
 use WpNcLinker\Admin\ConnectionTestAction;
+use WpNcLinker\Admin\MediaTab;
 use WpNcLinker\Admin\SettingsPage;
+use WpNcLinker\Browse\Browser;
+use WpNcLinker\Browse\SeenFiles;
 use WpNcLinker\Cli\Command;
 use WpNcLinker\Config\Constants;
 use WpNcLinker\Config\Crypto;
@@ -20,6 +23,7 @@ use WpNcLinker\Config\SettingsRegistration;
 use WpNcLinker\Config\SettingsSanitizer;
 use WpNcLinker\Diagnostics\ConnectionTest;
 use WpNcLinker\Nextcloud\Client;
+use WpNcLinker\Rest\BrowseController;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -64,6 +68,9 @@ final class Plugin {
 		( new SettingsRegistration( $this->sanitizer() ) )->register();
 
 		$connection_test = fn (): ConnectionTest => new ConnectionTest( $this->settings(), $this->client() );
+
+		( new BrowseController( new Browser( $this->settings(), $this->client() ), new SeenFiles(), $this->client() ) )->register();
+		( new MediaTab() )->register();
 
 		if ( is_admin() ) {
 			$test_action = new ConnectionTestAction( $connection_test );
