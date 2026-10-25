@@ -24,5 +24,6 @@ const WPNCL_PLUGIN_DIR  = __DIR__;
 require_once __DIR__ . '/src/autoload.php';
 
 register_activation_hook( __FILE__, array( \WpNcLinker\Plugin::class, 'activate' ) );
+register_deactivation_hook( __FILE__, array( \WpNcLinker\Plugin::class, 'deactivate' ) );
 
 \WpNcLinker\Plugin::instance()->register();

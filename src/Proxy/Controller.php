@@ -168,6 +168,14 @@ final class Controller {
 		}
 
 		if ( null === $status ) {
+			if ( LinkedFile::STATUS_MISSING === $linked->status ) {
+				/**
+				 * Fires when a linked file that was marked missing is delivered again.
+				 *
+				 * @param int $attachment_id Attachment ID.
+				 */
+				do_action( 'wpncl_file_available', $attachment_id );
+			}
 			return;
 		}
 
