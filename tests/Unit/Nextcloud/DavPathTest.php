@@ -75,4 +75,18 @@ final class DavPathTest extends TestCase {
 			}
 		}
 	}
+
+	public function test_relative_paths_from_hrefs(): void {
+		$collection = DavPath::files( 'linker' );
+
+		$this->assertSame( '', DavPath::relative( '/remote.php/dav/files/linker/', $collection ) );
+		$this->assertSame( '', DavPath::relative( '/remote.php/dav/files/linker', $collection ) );
+		$this->assertSame( 'Shared With Linker/a b.jpg', DavPath::relative( '/remote.php/dav/files/linker/Shared%20With%20Linker/a%20b.jpg', $collection ) );
+		// Nextcloud in a sub-directory.
+		$this->assertSame( '', DavPath::relative( '/nextcloud/remote.php/dav/files/linker/', $collection ) );
+		$this->assertSame( 'Docs', DavPath::relative( '/nextcloud/remote.php/dav/files/linker/Docs/', $collection ) );
+		// Sabre does not encode everything rawurlencode() encodes.
+		$this->assertSame( 'Shared Album (content)', DavPath::relative( '/remote.php/dav/photos/linker/sharedalbums/Shared%20Album%20(content)/', DavPath::photos( 'linker', DavPath::SHARED_ALBUMS ) ) );
+		$this->assertNull( DavPath::relative( '/remote.php/dav/files/other/x.jpg', $collection ) );
+	}
 }

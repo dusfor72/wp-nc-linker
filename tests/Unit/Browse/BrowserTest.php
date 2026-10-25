@@ -143,6 +143,15 @@ final class BrowserTest extends TestCase {
 		$this->assertSame( 1600, $photos[0]->width );
 	}
 
+	public function test_nextcloud_in_sub_directory(): void {
+		$xml   = (string) self::fixture( 'files-root' )->body;
+		$xml   = str_replace( '<d:href>/remote.php/', '<d:href>/nextcloud/remote.php/', $xml );
+		$items = self::browser( array( 'PROPFIND /remote.php/dav/files/linker/ 1' => new Response( 207, array(), $xml ) ) )
+			->list( Area::Folders, '' );
+
+		$this->assertSame( array( 'Hidden Download', 'Own', 'Shared With Linker' ), self::names( $items ) );
+	}
+
 	public function test_listing_is_cached(): void {
 		$client  = null;
 		$browser = self::browser( array( 'PROPFIND /remote.php/dav/files/linker/ 1' => self::fixture( 'files-root' ) ), $client );
