@@ -58,7 +58,7 @@ jobs:
       - run: npm run lint:js
 
   integration:
-    name: Integration tests (WordPress + Nextcloud)
+    name: Integration and E2E tests (WordPress + Nextcloud)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -68,11 +68,21 @@ jobs:
           php-version: '8.4'
           coverage: none
           tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
       - run: composer install --no-interaction --no-progress
+      - run: npm ci
+      - run: npm run build
       - name: Start and seed the test environment
         run: dev/bin/setup.sh
       - name: Run integration tests
         run: dev/bin/test-integration.sh
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E tests
+        run: dev/bin/test-e2e.sh
       - name: No PHP notices, warnings or deprecations in the WordPress log
         run: |
           set -euo pipefail
@@ -84,3 +94,10 @@ jobs:
       - name: Container logs
         if: failure()
         run: docker compose --project-directory dev -f dev/docker-compose.yml logs --tail=200
+      - name: Upload E2E results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: test-results/
+          retention-days: 7

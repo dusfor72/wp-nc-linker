@@ -59,13 +59,18 @@ WordPress users: `admin`, `editor`, `author` (has `upload_files`), `subscriber`
   checks and language list, which would otherwise log PHP warnings. WordPress runs in `en_US`;
   the plugin's own `de_DE` translation does not depend on core language packs being installed.
 
-## Integration tests
+## Integration and E2E tests
 
 ```sh
 dev/bin/test-integration.sh   # PHPUnit inside the WordPress container, requests over HTTP like a browser
 ```
 
-The script passes the app password of `linker` to the tests as `WPNCL_TEST_APP_PASSWORD`
+```sh
+npm run build                 # the E2E tests use the built media dialog extension
+dev/bin/test-e2e.sh           # Playwright (Chromium) against http://localhost:8080
+```
+
+The integration script passes the app password of `linker` to the tests as `WPNCL_TEST_APP_PASSWORD`
 (`dev/.secrets/` itself is only readable on the host). The same steps run in CI (job
 "Integration tests").
 
