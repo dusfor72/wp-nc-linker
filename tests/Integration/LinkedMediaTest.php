@@ -283,8 +283,18 @@ final class LinkedMediaTest extends TestCase {
 		$this->assertIsInt( $admin_post );
 		$response = $this->link( $this->session( 'author' ), $item, $admin_post );
 		$this->assertIsArray( $response['data']['attachments'] );
-		$this->assertSame( 0, wp_get_post_parent_id( (int) $response['data']['attachments'][0]['id'] ) );
+		$attachment_id = (int) $response['data']['attachments'][0]['id'];
+		$this->assertSame( 0, wp_get_post_parent_id( $attachment_id ) );
 		wp_delete_post( $admin_post, true );
+
+		// The Nextcloud source is part of the media library data only for users who may link files.
+		wp_set_current_user( $this->create_user( 'author' ) );
+		$this->assertArrayHasKey( 'wpncl', (array) wp_prepare_attachment_for_js( $attachment_id ) );
+		$restrict = static fn (): string => 'manage_options';
+		add_filter( 'wpncl_select_capability', $restrict );
+		$this->assertArrayNotHasKey( 'wpncl', (array) wp_prepare_attachment_for_js( $attachment_id ) );
+		remove_filter( 'wpncl_select_capability', $restrict );
+		wp_set_current_user( 0 );
 	}
 
 	public function test_blocks_render_proxy_srcset(): void {
