@@ -101,11 +101,11 @@ Property names (from `apps/dav/lib/Connector/Sabre/FilesPlugin.php`; `d:` = `DAV
 | Preview available | `nc:has-preview` (`true`/`false`) |
 | Permissions | `oc:permissions` (e.g. `RGDNVW`; `G` = readable) |
 | Share attributes | `nc:share-attributes` |
-| Image size | `nc:metadata-photos-size` → `{"width":…,"height":…}` (Photos `SizeMetadataProvider`, already corrected for EXIF rotation) |
+| Image size | `nc:metadata-photos-size` with child elements `<width>…</width><height>…</height>` (no namespace; Photos `SizeMetadataProvider`, already corrected for EXIF rotation). Missing if no metadata was generated (see §8). |
 | Hidden live-photo video | `nc:hidden` |
 
-`GET` streams the original. `Range` support comes from sabre/dav (3rdparty, not checked
-out) – to be confirmed in the test environment; the plugin does not depend on it in v1.
+`GET` streams the original. `Range` is supported (`206 Partial Content`, confirmed in the test
+environment).
 
 ## 5. Albums (WebDAV photos)
 
@@ -151,3 +151,23 @@ path. If the path fails (renamed/moved; file IDs are stable), re-locate:
 Memories 10.2.0 reads and writes the same tables (`photos_albums`, `photos_albums_files`,
 `lib/Db/AlbumsQuery.php`). Albums maintained in Memories appear in the Photos DAV collections
 and the Photos preview route. No Memories API is needed.
+
+## 8. Confirmed in the test environment (`dev/`)
+
+Nextcloud 34.0.4 image (Photos 7.0.0 bundled), Memories 10.2.0, requests from the WordPress
+container over HTTPS with certificate verification:
+
+- Preview route: folder file `200 image/jpeg`; file from a group-shared album `200 image/png`;
+  file in a share with `download = false` → `404`; unknown ID → `404`.
+- Headers of a preview: `Content-Type`, `Content-Length`, `ETag`, `Last-Modified`,
+  `Cache-Control: private, max-age=86400, immutable`, `X-Content-Type-Options: nosniff` and
+  several `Set-Cookie` (session) headers – none of them may reach the visitor.
+- Rounding: request `x=768&y=768` for a 2400×1600 original → delivered **1024×683**.
+- WebDAV `GET` on the `download = false` file → **200** (default
+  `shareapi_allow_view_without_download`); confirms the need for D-3.
+- `Range: bytes=0-99` → `206`, 100 bytes.
+- Wrong password → `401` and a "Login failed" warning in the Nextcloud log.
+- **Metadata:** files uploaded via WebDAV get `photos-size` immediately (live event, local
+  storage). Files that only became known through `occ files:scan` (or remote/external storage,
+  where Photos defers to a background job) had **no** `photos-size`. The plugin needs a
+  fallback for width/height (OP-9).

@@ -19,5 +19,6 @@
 - **OP-4:** Visibility of the GitHub repository (private during development, public later?).
 - **OP-5:** External configuration file outside the web root (path via constant) – only if needed.
 - **OP-6:** Upstream bug in Photos `PreviewController` (group loop merges the wrong variable). No effect on the plugin; report upstream?
-- **OP-7:** `Range` requests in the proxy (resumable downloads, PDF viewers). Not required for v1.
+- **OP-7:** `Range` requests in the proxy (resumable downloads, PDF viewers). Nextcloud supports them (`206`); not required for v1.
 - **OP-8:** Nextcloud generates no image previews for originals larger than `preview_max_filesize_image` (default 50 MB). Such files have no thumbnail and no resized sizes; behaviour (placeholder vs. original) to be decided in F4/F5.
+- **OP-9:** `nc:metadata-photos-size` can be missing (files added by scan or on external storage until the background job ran). Fallback for width/height needed in F4 (e.g. from the delivered maximum preview, or a later re-check).
