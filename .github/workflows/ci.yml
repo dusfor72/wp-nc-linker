@@ -57,6 +57,34 @@ jobs:
       - run: npm ci
       - run: npm run lint:js
 
+  package:
+    name: Translations and plugin zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: wp-cli
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Translation files are up to date
+        run: |
+          dev/bin/i18n.sh
+          git diff --exit-code -I'Creation-Date' -I'Revision-Date' -- languages/*.pot languages/*.po languages/*.json
+      - name: Build zip
+        run: dev/bin/build-zip.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wp-nc-linker-zip
+          path: dist/*.zip
+          retention-days: 14
+
   integration:
     name: Integration and E2E tests (WordPress + Nextcloud)
     runs-on: ubuntu-latest
