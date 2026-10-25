@@ -37,6 +37,8 @@ final class UninstallTest extends TestCase {
 
 	/**
 	 * Scheduler (only used to schedule the event).
+	 *
+	 * @throws \LogicException If the scheduler tries to run a check.
 	 */
 	private static function scheduler(): Scheduler {
 		return new Scheduler( new Repository(), static fn () => throw new \LogicException( 'Not used.' ) );
