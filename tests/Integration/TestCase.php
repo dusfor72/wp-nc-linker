@@ -310,10 +310,11 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 	 * @param string                $user     Nextcloud user.
 	 * @param string                $password Password or app password.
 	 * @param array<string, string> $headers  Request headers.
+	 * @param string|null           $body     Request body.
 	 * @phpstan-param non-empty-string $method
 	 * @return array{status: int, body: string}
 	 */
-	protected static function nextcloud( string $method, string $path, string $user, string $password, array $headers = array() ): array {
+	protected static function nextcloud( string $method, string $path, string $user, string $password, array $headers = array(), ?string $body = null ): array {
 		$handle = curl_init( 'https://nextcloud.test' . $path );
 		self::assertNotFalse( $handle );
 		$header_lines = array();
@@ -331,14 +332,17 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 				CURLOPT_TIMEOUT        => 120,
 			)
 		);
-		$body   = curl_exec( $handle );
-		$status = curl_getinfo( $handle, CURLINFO_RESPONSE_CODE );
+		if ( null !== $body ) {
+			curl_setopt( $handle, CURLOPT_POSTFIELDS, $body );
+		}
+		$response = curl_exec( $handle );
+		$status   = curl_getinfo( $handle, CURLINFO_RESPONSE_CODE );
 		curl_close( $handle );
-		self::assertIsString( $body );
+		self::assertIsString( $response );
 
 		return array(
 			'status' => (int) $status,
-			'body'   => $body,
+			'body'   => $response,
 		);
 	}
 

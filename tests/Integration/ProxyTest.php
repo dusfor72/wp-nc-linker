@@ -304,6 +304,8 @@ final class ProxyTest extends TestCase {
 		$this->assertSame( 'image/svg+xml', $placeholder['headers']['content-type'] ?? null );
 		$this->assertStringStartsWith( '<svg ', $placeholder['body'] );
 		$this->assertStringNotContainsString( '<script', $placeholder['body'] );
+		wp_cache_delete( $image, 'post_meta' );
+		$this->assertSame( \WpNcLinker\Media\LinkedFile::STATUS_MISSING, ( new Repository() )->get( $image )?->status );
 
 		$this->assertSame( 404, $this->http( 'GET', self::path_of( wp_get_attachment_url( $document ) ) )['status'] );
 	}

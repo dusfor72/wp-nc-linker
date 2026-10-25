@@ -11,6 +11,7 @@ namespace WpNcLinker;
 
 use WpNcLinker\Admin\Capabilities;
 use WpNcLinker\Admin\ConnectionTestAction;
+use WpNcLinker\Admin\DashboardWidget;
 use WpNcLinker\Admin\MediaTab;
 use WpNcLinker\Admin\SettingsPage;
 use WpNcLinker\Browse\Browser;
@@ -22,6 +23,8 @@ use WpNcLinker\Config\Settings;
 use WpNcLinker\Config\SettingsRegistration;
 use WpNcLinker\Config\SettingsSanitizer;
 use WpNcLinker\Diagnostics\ConnectionTest;
+use WpNcLinker\Health\Checker;
+use WpNcLinker\Health\Scheduler;
 use WpNcLinker\Media\AttachmentFilters;
 use WpNcLinker\Media\Importer;
 use WpNcLinker\Media\Locator;
@@ -76,6 +79,9 @@ final class Plugin {
 		( new SettingsRegistration( $this->sanitizer() ) )->register();
 
 		$connection_test = fn (): ConnectionTest => new ConnectionTest( $this->settings(), $this->client() );
+		$checker         = fn (): Checker => new Checker( $this->client(), new Repository(), new Locator( $this->client(), new Repository() ) );
+
+		( new Scheduler( new Repository(), $checker ) )->register();
 
 		( new BrowseController( new Browser( $this->settings(), $this->client() ), new SeenFiles(), $this->client() ) )->register();
 		( new AttachmentsController( new Importer( $this->settings(), $this->client(), new Repository() ) ) )->register();
@@ -87,10 +93,11 @@ final class Plugin {
 			$test_action = new ConnectionTestAction( $connection_test );
 			$test_action->register();
 			( new SettingsPage( $this->settings(), $test_action ) )->register();
+			( new DashboardWidget( new Repository() ) )->register();
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			( new Command( $connection_test ) )->register();
+			( new Command( $connection_test, $checker, new Repository() ) )->register();
 		}
 	}
 
@@ -99,6 +106,13 @@ final class Plugin {
 	 */
 	public static function activate(): void {
 		add_option( Settings::OPTION, Settings::defaults() );
+	}
+
+	/**
+	 * Deactivation: removes the scheduled checks.
+	 */
+	public static function deactivate(): void {
+		Scheduler::unschedule();
 	}
 
 	/**
