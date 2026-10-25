@@ -17,17 +17,22 @@ As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open p
 | F8 | Permissions reviewed; Nextcloud source in media library data only with the select capability | #9 |
 | F9/F10 | `wp nc-linker list [--status] [--format]`; `uninstall.php` (`Uninstaller`): options, cron, transients, linked media only with `delete_on_uninstall` | #10 |
 | i18n/README/zip | `de_DE` (Du-Form: PHP + media tab JSON), README, `dev/bin/i18n.sh`, `dev/bin/build-zip.sh`, CI zip job, release workflow on tag `v*` | #11 |
+| Release 0.1.0 | Version 0.1.0, tag `v0.1.0` (release workflow publishes the zip) | #12 |
 
 Acceptance tests already covered by integration/E2E tests: 1, 1a, 2–12, 14.
 15 is covered by the CI job "Translations and plugin zip" (zip with built assets and `de_DE`, artifact
-`wp-nc-linker-zip`). Still open: 13 (filesystem diff before/after a test run).
+`wp-nc-linker-zip`). 13 (filesystem diff before/after a test run): done externally – checked on the
+target system, not in CI.
 
 ## Next steps
 
-1. Acceptance test 13: filesystem diff of the WordPress container before/after the test run (CI).
-2. First release: set version (`wp-nc-linker.php` header + `WPNCL_VERSION`, `package.json`), tag
-   `v<version>`; the release workflow publishes the zip. Decide OP-3/OP-4 beforehand if needed.
-3. New or changed strings: run `dev/bin/i18n.sh` (WP-CLI needed; locally the wp-cli.phar from
+1. Install `v0.1.0` on the target system from the release zip (separately, per the server rules) and
+   check acceptance test 13 there.
+2. Open points: OP-1…OP-11 in `docs/decisions.md` (e.g. OP-3 update path, OP-4 repository visibility).
+3. Next release: raise the version (`wp-nc-linker.php` header + `WPNCL_VERSION`, `package.json`,
+   `package-lock.json`, `tests/phpstan-bootstrap.php`), run `dev/bin/i18n.sh`, merge, push tag
+   `v<version>`.
+4. New or changed strings: run `dev/bin/i18n.sh` (WP-CLI needed; locally the wp-cli.phar from
    `raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar` works through the proxy) and
    translate the new entries in `languages/wp-nc-linker-de_DE.po`; CI fails if the files are stale.
 
