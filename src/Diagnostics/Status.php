@@ -24,7 +24,7 @@ enum Status: string {
 	 * Translated label.
 	 */
 	public function label(): string {
-		return match ( $this ) { // phpcs:ignore PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext -- Enum method; the sniff predates enums.
+		return match ( $this ) {
 			self::Ok      => __( 'OK', 'wp-nc-linker' ),
 			self::Warning => __( 'Warning', 'wp-nc-linker' ),
 			self::Error   => __( 'Error', 'wp-nc-linker' ),

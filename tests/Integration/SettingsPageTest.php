@@ -50,28 +50,6 @@ final class SettingsPageTest extends TestCase {
 	}
 
 	/**
-	 * Nonce for a user's session (as WordPress would print it in a form).
-	 *
-	 * @param int                   $user_id User ID.
-	 * @param array<string, string> $cookies Login cookies of that user.
-	 * @param string                $action  Nonce action.
-	 */
-	private function nonce( int $user_id, array $cookies, string $action ): string {
-		$previous_cookie             = $_COOKIE[ LOGGED_IN_COOKIE ] ?? null;
-		$_COOKIE[ LOGGED_IN_COOKIE ] = $cookies[ LOGGED_IN_COOKIE ];
-		wp_set_current_user( $user_id );
-		$nonce = wp_create_nonce( $action );
-		wp_set_current_user( 0 );
-		if ( null === $previous_cookie ) {
-			unset( $_COOKIE[ LOGGED_IN_COOKIE ] );
-		} else {
-			$_COOKIE[ LOGGED_IN_COOKIE ] = $previous_cookie;
-		}
-
-		return $nonce;
-	}
-
-	/**
 	 * Submits the settings form as the given user.
 	 *
 	 * @param array<string, string> $cookies Login cookies.

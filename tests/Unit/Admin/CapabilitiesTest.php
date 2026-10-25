@@ -37,4 +37,12 @@ final class CapabilitiesTest extends TestCase {
 
 		$this->assertSame( 'manage_options', Capabilities::settings() );
 	}
+
+	public function test_select_capability(): void {
+		$this->assertSame( 'upload_files', Capabilities::select() );
+
+		Filters\expectApplied( 'wpncl_select_capability' )->andReturn( 'edit_posts' );
+		Functions\expect( 'current_user_can' )->once()->with( 'edit_posts' )->andReturn( true );
+		$this->assertTrue( Capabilities::can_select() );
+	}
 }

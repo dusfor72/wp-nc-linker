@@ -10,8 +10,6 @@ declare(strict_types=1);
 namespace WpNcLinker\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
-use WpNcLinker\Config\Crypto;
-use WpNcLinker\Config\Settings;
 use WpNcLinker\Diagnostics\CheckResult;
 use WpNcLinker\Diagnostics\ConnectionTest;
 use WpNcLinker\Plugin;
@@ -26,39 +24,7 @@ final class ConnectionTestTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$this->configure( self::app_password() );
-	}
-
-	/**
-	 * App password of the connection account created by the seed (passed by dev/bin/test-integration.sh).
-	 */
-	private static function app_password(): string {
-		$password = getenv( 'WPNCL_TEST_APP_PASSWORD' );
-		if ( ! is_string( $password ) || '' === $password ) {
-			self::fail( 'WPNCL_TEST_APP_PASSWORD missing; run the tests with dev/bin/test-integration.sh.' );
-		}
-
-		return $password;
-	}
-
-	/**
-	 * Stores the connection settings.
-	 *
-	 * @param string $password App password.
-	 * @param string $url      Nextcloud URL.
-	 */
-	private function configure( string $password, string $url = 'https://nextcloud.test' ): void {
-		$this->set_option(
-			Settings::OPTION,
-			array_merge(
-				Settings::defaults(),
-				array(
-					'url'          => $url,
-					'user'         => 'linker',
-					'app_password' => Crypto::from_wordpress()->encrypt( $password ),
-				)
-			)
-		);
+		$this->configure_connection();
 	}
 
 	/**
@@ -106,7 +72,7 @@ final class ConnectionTestTest extends TestCase {
 	}
 
 	public function test_cli_fails_with_exit_code_1(): void {
-		$this->configure( self::app_password(), 'https://cloud.example.org' );
+		$this->configure_connection( null, 'https://cloud.example.org' );
 
 		$output = array();
 		$code   = 0;
@@ -116,7 +82,7 @@ final class ConnectionTestTest extends TestCase {
 	}
 
 	public function test_wrong_password_reports_login_error(): void {
-		$this->configure( 'Wrong-App-Password' );
+		$this->configure_connection( 'Wrong-App-Password' );
 		$results = self::run_test();
 
 		$this->assertSame( array( 'configuration', 'server', 'login' ), array_keys( $results ) );
@@ -125,7 +91,7 @@ final class ConnectionTestTest extends TestCase {
 	}
 
 	public function test_certificate_for_other_host_is_rejected(): void {
-		$this->configure( self::app_password(), 'https://wrong-name.test' );
+		$this->configure_connection( null, 'https://wrong-name.test' );
 		$results = self::run_test();
 
 		$this->assertSame( 'error', $results['server']->status->value );
@@ -134,7 +100,7 @@ final class ConnectionTestTest extends TestCase {
 	}
 
 	public function test_tls_verification_cannot_be_disabled_by_other_plugins(): void {
-		$this->configure( self::app_password(), 'https://wrong-name.test' );
+		$this->configure_connection( null, 'https://wrong-name.test' );
 		$no_verify_args = static function ( array $args ): array {
 			$args['sslverify'] = false;
 			return $args;
@@ -159,7 +125,7 @@ final class ConnectionTestTest extends TestCase {
 	}
 
 	public function test_blocked_external_host_is_explained(): void {
-		$this->configure( self::app_password(), 'https://cloud.example.org' );
+		$this->configure_connection( null, 'https://cloud.example.org' );
 		$results = self::run_test();
 
 		$this->assertSame( 'error', $results['server']->status->value );

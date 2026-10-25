@@ -221,7 +221,7 @@ class Client {
 		}
 
 		if ( is_wp_error( $result ) ) {
-			throw TransportException::from_message( $result->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Not output directly; escaped where displayed.
+			throw TransportException::from_message( $result->get_error_message() );
 		}
 
 		$response_headers = array();
