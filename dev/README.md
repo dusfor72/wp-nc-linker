@@ -37,7 +37,8 @@ uploaded via WebDAV.
 | Album `Linker Album` of `linker` | 1 JPEG (`linker:/Own/`) | Own albums |
 
 WordPress users: `admin`, `editor`, `author` (has `upload_files`), `subscriber`
-(password `WP_USER_PASSWORD`).
+(password `WP_USER_PASSWORD`). The plugin is activated and connected to `https://nextcloud.test` as
+`linker` (app password stored encrypted); the seed ends with `wp nc-linker test`.
 
 ## Properties mirrored from the target installation
 
