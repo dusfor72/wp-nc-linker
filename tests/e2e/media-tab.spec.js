@@ -334,6 +334,53 @@ test.describe( 'Nextcloud tab', () => {
 		await requestUtils.deleteAllPosts();
 	} );
 
+	test( 'front end shows the PDF in the file block', async ( {
+		page,
+		requestUtils,
+	} ) => {
+		const linked = await requestUtils.rest( {
+			method: 'POST',
+			path: '/wpncl/v1/attachments',
+			data: {
+				items: [
+					{ area: 'folders', path: 'Shared With Linker/sample.pdf' },
+				],
+			},
+		} );
+		const pdf = linked.attachments[ 0 ];
+		const post = await requestUtils.createPost( {
+			title: 'Linked document',
+			status: 'publish',
+			content:
+				`<!-- wp:file {"id":${ pdf.id },"href":"${ pdf.url }","displayPreview":true} -->` +
+				`<div class="wp-block-file"><object class="wp-block-file__embed" data="${ pdf.url }" type="application/pdf" style="width:100%;height:600px" aria-label="sample"></object>` +
+				`<a id="wp-block-file--media-1" href="${ pdf.url }">sample</a>` +
+				`<a href="${ pdf.url }" class="wp-block-file__button wp-element-button" download aria-describedby="wp-block-file--media-1">Download</a></div>` +
+				'<!-- /wp:file -->',
+		} );
+
+		await page.goto( post.link );
+		await expect(
+			page.locator( 'object.wp-block-file__embed' )
+		).toHaveAttribute(
+			'data',
+			/\/nextcloud-media\/\d+\/full\/sample\.pdf$/
+		);
+		const href = await page
+			.locator( '.wp-block-file__button' )
+			.getAttribute( 'href' );
+		const response = await page.request.get( href );
+		expect( response.status() ).toBe( 200 );
+		expect( response.headers()[ 'content-type' ] ).toBe(
+			'application/pdf'
+		);
+		expect( ( await response.body() ).subarray( 0, 5 ).toString() ).toBe(
+			'%PDF-'
+		);
+
+		await requestUtils.deleteAllPosts();
+	} );
+
 	test.afterAll( async ( { requestUtils } ) => {
 		await requestUtils.deleteAllMedia();
 	} );
