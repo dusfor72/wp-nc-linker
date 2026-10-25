@@ -90,6 +90,148 @@ class Client {
 	}
 
 	/**
+	 * SEARCH for a file by its file ID in the account's file tree.
+	 *
+	 * @param int $file_id File ID.
+	 * @throws NotConfiguredException If the connection is not configured.
+	 * @throws TransportException If no HTTP response was received.
+	 */
+	public function search_file_id( int $file_id ): Response {
+		return $this->send(
+			'SEARCH',
+			DavPath::root(),
+			array( 'Content-Type' => 'text/xml; charset=utf-8' ),
+			MultiStatus::search_by_id_body( DavPath::search_scope( $this->user() ), $file_id ),
+			true,
+			self::MAX_LISTING_BYTES
+		);
+	}
+
+	/**
+	 * Path of the preview route for a file and box.
+	 *
+	 * @param int $file_id File ID.
+	 * @param int $width   Maximum width.
+	 * @param int $height  Maximum height.
+	 */
+	public static function preview_path( int $file_id, int $width, int $height ): string {
+		$query = http_build_query(
+			array(
+				'x' => max( 1, $width ),
+				'y' => max( 1, $height ),
+			)
+		);
+
+		return self::PREVIEW_PATH . max( 0, $file_id ) . '?' . $query;
+	}
+
+	/**
+	 * Streams a GET request with cURL without buffering the body (D-4).
+	 *
+	 * $on_headers receives the status and the response headers (lowercase names) once they are
+	 * complete and returns whether the body is wanted; $on_body receives the body in chunks.
+	 * Redirects are not followed; TLS is always verified.
+	 *
+	 * @param string                $path       Path below the base URL.
+	 * @param array<string, string> $headers    Request headers.
+	 * @param callable              $on_headers Called once with (int $status, array $headers): bool.
+	 * @param callable              $on_body    Called with (string $chunk) for each chunk.
+	 * @phpstan-param callable(int, array<string, string>): bool $on_headers
+	 * @phpstan-param callable(string): void $on_body
+	 * @return int HTTP status of the response.
+	 * @throws NotConfiguredException If the connection is not configured.
+	 * @throws TransportException If no complete response header was received.
+	 */
+	public function stream( string $path, array $headers, callable $on_headers, callable $on_body ): int {
+		$base     = $this->settings->url() ?? throw new NotConfiguredException( 'URL not configured.' );
+		$password = $this->settings->app_password() ?? throw new NotConfiguredException( 'App password not configured.' );
+		$url      = $base . $path;
+
+		if ( ( new \WP_Http() )->block_request( $url ) ) {
+			throw new TransportException( TransportException::BLOCKED, 'User has blocked requests through HTTP.' );
+		}
+
+		$request_headers = array(
+			'Authorization: Basic ' . base64_encode( $this->user() . ':' . $password ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- HTTP Basic authentication.
+			'User-Agent: WP-Nextcloud-Linker/' . WPNCL_VERSION,
+		);
+		foreach ( $headers as $name => $value ) {
+			$request_headers[] = $name . ': ' . str_replace( array( "\r", "\n" ), '', $value );
+		}
+
+		$status           = 0;
+		$response_headers = array();
+		$headers_done     = false;
+		$want_body        = false;
+
+		// phpcs:disable WordPress.WP.AlternativeFunctions -- The WordPress HTTP API cannot stream without buffering or temp files (D-4).
+		$handle = curl_init( $url );
+		if ( false === $handle ) {
+			throw new TransportException( TransportException::OTHER, 'cURL could not be initialised.' );
+		}
+		$options = array(
+			CURLOPT_HTTPGET         => true,
+			CURLOPT_HTTPHEADER      => $request_headers,
+			CURLOPT_FOLLOWLOCATION  => false,
+			CURLOPT_PROTOCOLS       => CURLPROTO_HTTPS,
+			CURLOPT_SSL_VERIFYPEER  => true,
+			CURLOPT_SSL_VERIFYHOST  => 2,
+			CURLOPT_CAINFO          => self::ca_bundle(),
+			CURLOPT_CONNECTTIMEOUT  => self::timeout(),
+			CURLOPT_LOW_SPEED_LIMIT => 1,
+			CURLOPT_LOW_SPEED_TIME  => 60,
+			CURLOPT_HEADERFUNCTION  => static function ( $curl, string $line ) use ( &$status, &$response_headers, &$headers_done, &$want_body, $on_headers ): int {
+				$trimmed = trim( $line );
+				if ( preg_match( '#^HTTP/\S+\s+(\d{3})#', $trimmed, $matches ) ) {
+					$status           = (int) $matches[1];
+					$response_headers = array();
+				} elseif ( '' === $trimmed ) {
+					// Interim responses (1xx) are followed by another status line.
+					if ( $status >= 200 && ! $headers_done ) {
+						$headers_done = true;
+						$want_body    = (bool) $on_headers( $status, $response_headers );
+					}
+				} elseif ( str_contains( $trimmed, ':' ) ) {
+					[ $name, $value ]                                  = explode( ':', $trimmed, 2 );
+					$response_headers[ strtolower( trim( $name ) ) ] = trim( $value );
+				}
+				return strlen( $line );
+			},
+			CURLOPT_WRITEFUNCTION   => static function ( $curl, string $chunk ) use ( &$want_body, $on_body ): int {
+				if ( ! $want_body ) {
+					return -1;
+				}
+				$on_body( $chunk );
+				return strlen( $chunk );
+			},
+		);
+
+		$proxy = new \WP_HTTP_Proxy();
+		if ( $proxy->is_enabled() && $proxy->send_through_proxy( $url ) ) {
+			$options[ CURLOPT_PROXY ]     = $proxy->host();
+			$options[ CURLOPT_PROXYPORT ] = (int) $proxy->port();
+			if ( $proxy->use_authentication() ) {
+				$options[ CURLOPT_PROXYUSERPWD ] = $proxy->authentication();
+			}
+		}
+
+		foreach ( $options as $option => $value ) {
+			curl_setopt( $handle, $option, $value );
+		}
+		curl_exec( $handle );
+		$errno = curl_errno( $handle );
+		$error = curl_error( $handle );
+		curl_close( $handle );
+		// phpcs:enable
+
+		if ( ! $headers_done ) {
+			throw TransportException::from_message( 'cURL error ' . $errno . ': ' . $error );
+		}
+
+		return $status;
+	}
+
+	/**
 	 * Buffered preview of a file (Photos preview route).
 	 *
 	 * @param int $file_id   File ID.
@@ -100,14 +242,7 @@ class Client {
 	 * @throws TransportException If no HTTP response was received.
 	 */
 	public function preview( int $file_id, int $width, int $height, int $max_bytes ): Response {
-		$query = http_build_query(
-			array(
-				'x' => max( 1, $width ),
-				'y' => max( 1, $height ),
-			)
-		);
-
-		return $this->send( 'GET', self::PREVIEW_PATH . max( 0, $file_id ) . '?' . $query, array(), null, true, $max_bytes );
+		return $this->send( 'GET', self::preview_path( $file_id, $width, $height ), array(), null, true, $max_bytes );
 	}
 
 	/**
@@ -135,6 +270,8 @@ class Client {
 
 	/**
 	 * CA bundle used to verify the Nextcloud certificate.
+	 *
+	 * @return non-empty-string
 	 */
 	public static function ca_bundle(): string {
 		$default = ABSPATH . WPINC . '/certificates/ca-bundle.crt';
