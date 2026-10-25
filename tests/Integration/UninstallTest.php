@@ -64,7 +64,8 @@ final class UninstallTest extends TestCase {
 	 */
 	private function assert_plugin_data_removed(): void {
 		wp_cache_flush();
-		$this->assertFalse( get_option( Settings::OPTION ) );
+		// An explicit default bypasses the default registered with register_setting().
+		$this->assertSame( 'deleted', get_option( Settings::OPTION, 'deleted' ) );
 		foreach ( Scheduler::options() as $name ) {
 			$this->assertFalse( get_option( $name ), $name );
 		}
