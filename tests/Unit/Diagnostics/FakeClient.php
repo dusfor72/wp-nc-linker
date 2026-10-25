@@ -28,6 +28,13 @@ final class FakeClient extends Client {
 	public array $requests = array();
 
 	/**
+	 * Answer of head_bytes() (default: 500).
+	 *
+	 * @var Response|null
+	 */
+	public ?Response $answers_head = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param array<string, Response|\Throwable> $answers Answers per request.
@@ -50,6 +57,12 @@ final class FakeClient extends Client {
 
 	public function preview( int $file_id, int $width, int $height, int $max_bytes ): Response {
 		return $this->answer( "PREVIEW $file_id" );
+	}
+
+	public function head_bytes( string $path, int $length ): Response {
+		$this->requests[] = "HEAD $path";
+
+		return $this->answers_head ?? new Response( 500, array(), '' );
 	}
 
 	public function user(): string {

@@ -111,6 +111,20 @@ class Client {
 	}
 
 	/**
+	 * First bytes of a file (Range request), e.g. to read image dimensions.
+	 *
+	 * @param string $path   WebDAV path from DavPath.
+	 * @param int    $length Number of bytes.
+	 * @throws NotConfiguredException If the connection is not configured.
+	 * @throws TransportException If no HTTP response was received.
+	 */
+	public function head_bytes( string $path, int $length ): Response {
+		$length = max( 1, $length );
+
+		return $this->send( 'GET', $path, array( 'Range' => 'bytes=0-' . ( $length - 1 ) ), null, true, $length );
+	}
+
+	/**
 	 * User ID of the connection account.
 	 *
 	 * @throws NotConfiguredException If it is not configured.

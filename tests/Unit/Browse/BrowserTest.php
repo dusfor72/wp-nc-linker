@@ -11,6 +11,7 @@ namespace WpNcLinker\Tests\Unit\Browse;
 
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use WpNcLinker\Browse\Area;
 use WpNcLinker\Browse\BrowseException;
 use WpNcLinker\Browse\Browser;
@@ -186,7 +187,7 @@ final class BrowserTest extends TestCase {
 	 * @param Response|\Throwable $answer Answer.
 	 * @param int                 $code   Expected code.
 	 */
-	#[\PHPUnit\Framework\Attributes\DataProvider( 'failures' )]
+	#[DataProvider( 'failures' )]
 	public function test_failures( Response|\Throwable $answer, int $code ): void {
 		try {
 			self::browser( array( 'PROPFIND /remote.php/dav/files/linker/x/ 1' => $answer ) )->list( Area::Folders, 'x' );

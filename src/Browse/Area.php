@@ -39,6 +39,21 @@ enum Area: string {
 	}
 
 	/**
+	 * WebDAV path of a file in this area.
+	 *
+	 * @param string $user     User ID.
+	 * @param string $relative Normalised relative path of the file.
+	 * @throws \InvalidArgumentException If the path is not allowed.
+	 */
+	public function file_path( string $user, string $relative ): string {
+		return match ( $this ) {
+			self::Folders      => DavPath::files( $user, $relative ),
+			self::Albums       => DavPath::photos( $user, DavPath::ALBUMS, $relative ),
+			self::SharedAlbums => DavPath::photos( $user, DavPath::SHARED_ALBUMS, $relative ),
+		};
+	}
+
+	/**
 	 * Whether this area is an album collection.
 	 */
 	public function is_album_area(): bool {
