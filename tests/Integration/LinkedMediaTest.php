@@ -36,24 +36,6 @@ final class LinkedMediaTest extends TestCase {
 	}
 
 	/**
-	 * Removes all linked attachments of the test installation.
-	 */
-	private static function delete_linked_attachments(): void {
-		$ids = get_posts(
-			array(
-				'post_type'      => 'attachment',
-				'post_status'    => 'any',
-				'fields'         => 'ids',
-				'posts_per_page' => -1,
-				'meta_key'       => Repository::META_FILE_ID, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Test cleanup.
-			)
-		);
-		foreach ( $ids as $id ) {
-			wp_delete_attachment( (int) $id, true );
-		}
-	}
-
-	/**
 	 * Login cookies and REST nonce of a new user.
 	 *
 	 * @param string $role Role.

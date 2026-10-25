@@ -247,6 +247,10 @@ test.describe( 'Nextcloud tab', () => {
 			'src',
 			/\/nextcloud-media\/\d+\/1024x683\/forest-1024x683\.jpg$/
 		);
+		// Delivered by the proxy (F5).
+		await expect
+			.poll( () => image.evaluate( ( img ) => img.naturalWidth ) )
+			.toBe( 1024 );
 
 		await page.context().close();
 	} );
@@ -275,6 +279,59 @@ test.describe( 'Nextcloud tab', () => {
 		);
 
 		await page.context().close();
+	} );
+
+	test( 'front end shows linked images with srcset from the proxy', async ( {
+		page,
+		requestUtils,
+	} ) => {
+		const linked = await requestUtils.rest( {
+			method: 'POST',
+			path: '/wpncl/v1/attachments',
+			data: {
+				items: [
+					{ area: 'folders', path: 'Shared With Linker/forest.jpg' },
+					{ area: 'folders', path: 'Shared With Linker/harbor.jpg' },
+				],
+			},
+		} );
+		const [ forest, harbor ] = linked.attachments;
+		const image = ( attachment, size ) =>
+			`<!-- wp:image {"id":${ attachment.id },"sizeSlug":"${ size }","linkDestination":"none"} -->` +
+			`<figure class="wp-block-image size-${ size }"><img src="${ attachment.sizes[ size ].url }" alt="" class="wp-image-${ attachment.id }"/></figure>` +
+			'<!-- /wp:image -->';
+		const post = await requestUtils.createPost( {
+			title: 'Linked media',
+			status: 'publish',
+			content:
+				image( forest, 'large' ) +
+				'<!-- wp:gallery {"linkTo":"none"} --><figure class="wp-block-gallery has-nested-images columns-default is-cropped">' +
+				image( forest, 'medium' ) +
+				image( harbor, 'medium' ) +
+				'</figure><!-- /wp:gallery -->',
+		} );
+
+		await page.goto( post.link );
+		const images = page.locator(
+			'.entry-content img, .wp-block-post-content img'
+		);
+		await expect( images ).toHaveCount( 3 );
+		for ( const img of await images.all() ) {
+			await expect( img ).toHaveAttribute(
+				'srcset',
+				/\/nextcloud-media\//
+			);
+			await expect
+				.poll( () =>
+					img.evaluate( ( element ) => element.naturalWidth )
+				)
+				.toBeGreaterThan( 0 );
+			expect( await img.getAttribute( 'srcset' ) ).not.toContain(
+				'/wp-content/uploads/'
+			);
+		}
+
+		await requestUtils.deleteAllPosts();
 	} );
 
 	test.afterAll( async ( { requestUtils } ) => {
