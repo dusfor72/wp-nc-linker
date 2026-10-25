@@ -1,6 +1,6 @@
 # Status (handover between sessions)
 
-As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open points OP-1…OP-10:
+As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open points OP-1…OP-11:
 `docs/decisions.md`. Verified interfaces: `docs/nextcloud-interfaces.md`.
 
 ## Done (merged to `main`)
@@ -15,20 +15,18 @@ As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open p
 | F6 | Documents (PDF, Office) via file block | #6 |
 | F7 | Availability check (WP-Cron + `wp nc-linker check`), dashboard widget for missing files | #7 |
 | F8 | Permissions reviewed; Nextcloud source in media library data only with the select capability | #9 |
+| F9/F10 | `wp nc-linker list [--status] [--format]`; `uninstall.php` (`Uninstaller`): options, cron, transients, linked media only with `delete_on_uninstall` | #10 |
 
 Acceptance tests already covered by integration/E2E tests: 1, 1a, 2–12, 14.
 Still open: 13 (filesystem diff before/after a test run), 15 (release zip with built assets and `de_DE`).
 
 ## Next steps
 
-1. **F9 – WP-CLI:** `test` and `check` exist (`src/Cli/Command.php`); add `wp nc-linker list`
-   (virtual attachments with status, `--format`). `Repository::all_ids()` and `get()` exist.
-2. **F10 – uninstall:** `uninstall.php` removing options (`wpncl_settings`, `Scheduler::options()`),
-   cron events (`Scheduler::unschedule()`), transients; virtual attachments only when the setting
-   says so (the setting `delete_on_uninstall` already exists on the settings page).
-3. `de_DE` translation (Du-Form), README, acceptance test 13, release zip (acceptance 15).
-
-Suggestion: F9 and F10 in one PR.
+1. `de_DE` translation (Du-Form): `languages/` (`.po`/`.mo` and JSON for the media tab script).
+2. README (English): configuration via constants, shares with download permission, Memories/Photos
+   note, WP-CLI commands, uninstall behaviour.
+3. Acceptance test 13 (filesystem diff before/after a test run) and release zip (acceptance 15:
+   built assets and `de_DE`, without `dev/`, tests, `node_modules`).
 
 F8 review result (entry points): REST `browse`/`thumb`/`attachments` → `permission_callback` with the
 select capability, cookie auth requires the `wp_rest` nonce; parent post only with `edit_post`;
