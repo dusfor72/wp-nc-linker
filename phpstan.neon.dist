@@ -8,6 +8,7 @@ parameters:
 		max: 80499
 	paths:
 		- wp-nc-linker.php
+		- uninstall.php
 		- src
 		- tests
 	excludePaths:

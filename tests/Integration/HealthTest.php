@@ -96,6 +96,23 @@ final class HealthTest extends TestCase {
 	}
 
 	/**
+	 * Runs `wp nc-linker list`.
+	 *
+	 * @param string $options Additional options.
+	 * @return array<mixed>
+	 */
+	private static function cli_list( string $options ): array {
+		$output = array();
+		$code   = 0;
+		exec( 'cd /var/www/html && wp nc-linker list --format=json ' . $options . ' 2>&1', $output, $code );
+		self::assertSame( 0, $code, implode( "\n", $output ) );
+		$rows = json_decode( implode( "\n", $output ), true );
+		self::assertIsArray( $rows );
+
+		return $rows;
+	}
+
+	/**
 	 * Shares a folder of the content account with the linker account.
 	 *
 	 * @param string $path Folder path.
@@ -173,6 +190,25 @@ final class HealthTest extends TestCase {
 		$this->assertSame( 0, $recheck['code'], $recheck['output'] );
 		$this->assertSame( 'ok', $recheck['rows'][ $revoked ] ?? null );
 		$this->assertSame( LinkedFile::STATUS_OK, self::stored_status( $revoked ) );
+	}
+
+	public function test_cli_lists_linked_media(): void {
+		$ok      = self::link( 'Shared With Linker/forest.jpg' );
+		$missing = self::link( 'Shared With Linker/harbor.jpg' );
+		( new Repository() )->set_status( $missing, LinkedFile::STATUS_MISSING );
+
+		$all = self::cli_list( '' );
+		$this->assertSame(
+			array(
+				$ok      => 'ok',
+				$missing => 'missing',
+			),
+			array_column( $all, 'status', 'id' )
+		);
+		$this->assertSame( 'folders:Shared With Linker/forest.jpg', array_column( $all, 'source', 'id' )[ $ok ] ?? null );
+		$this->assertSame( 'image/jpeg', array_column( $all, 'mime', 'id' )[ $ok ] ?? null );
+
+		$this->assertSame( array( $missing => 'missing' ), array_column( self::cli_list( '--status=missing' ), 'status', 'id' ) );
 	}
 
 	public function test_proxy_marks_files_available_again(): void {
