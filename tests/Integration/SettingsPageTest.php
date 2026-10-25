@@ -243,6 +243,33 @@ final class SettingsPageTest extends TestCase {
 		$this->assertSame( 200, $this->http( 'GET', self::PAGE, $admin )['status'] );
 	}
 
+	public function test_update_outside_admin_is_sanitized(): void {
+		wp_set_current_user( $this->create_user( 'administrator' ) );
+		try {
+			update_option(
+				Settings::OPTION,
+				array(
+					'url'              => 'https://cloud.example.org/',
+					'new_app_password' => 'Outside-Admin-Secret-4',
+				)
+			);
+		} finally {
+			wp_set_current_user( 0 );
+		}
+
+		$stored = $this->stored();
+		$this->assertArrayNotHasKey( 'new_app_password', $stored );
+		$this->assertSame( 'https://cloud.example.org', $stored['url'] );
+		$this->assertIsString( $stored['app_password'] );
+		$this->assertSame( 'Outside-Admin-Secret-4', Crypto::from_wordpress()->decrypt( $stored['app_password'] ) );
+	}
+
+	public function test_update_without_authorized_user_is_rejected(): void {
+		update_option( Settings::OPTION, array( 'url' => 'https://evil.example.net' ) );
+
+		$this->assertSame( '', $this->stored()['url'] );
+	}
+
 	public function test_editor_has_no_access(): void {
 		$cookies = $this->login_cookies( $this->create_user( 'editor' ) );
 

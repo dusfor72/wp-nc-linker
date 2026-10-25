@@ -42,6 +42,8 @@ services:
       default:
         aliases:
           - nextcloud.test
+          # Not in the certificate: used by the tests for TLS verification failures.
+          - wrong-name.test
 
   wordpress:
     build: ./wordpress
@@ -64,7 +66,7 @@ services:
         define( 'DISALLOW_FILE_MODS', true );
         // The containers have no internet access; only Nextcloud is reachable.
         define( 'WP_HTTP_BLOCK_EXTERNAL', true );
-        define( 'WP_ACCESSIBLE_HOSTS', 'nextcloud.test' );
+        define( 'WP_ACCESSIBLE_HOSTS', 'nextcloud.test,wrong-name.test' );
       WP_CLI_CACHE_DIR: /tmp/wp-cli-cache
     volumes:
       - wordpress:/var/www/html

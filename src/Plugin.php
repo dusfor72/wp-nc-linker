@@ -10,11 +10,16 @@ declare(strict_types=1);
 namespace WpNcLinker;
 
 use WpNcLinker\Admin\Capabilities;
+use WpNcLinker\Admin\ConnectionTestAction;
 use WpNcLinker\Admin\SettingsPage;
+use WpNcLinker\Cli\Command;
 use WpNcLinker\Config\Constants;
 use WpNcLinker\Config\Crypto;
 use WpNcLinker\Config\Settings;
+use WpNcLinker\Config\SettingsRegistration;
 use WpNcLinker\Config\SettingsSanitizer;
+use WpNcLinker\Diagnostics\ConnectionTest;
+use WpNcLinker\Nextcloud\Client;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -56,9 +61,18 @@ final class Plugin {
 	 */
 	public function register(): void {
 		add_action( 'init', array( $this, 'load_textdomain' ) );
+		( new SettingsRegistration( $this->sanitizer() ) )->register();
+
+		$connection_test = fn (): ConnectionTest => new ConnectionTest( $this->settings(), $this->client() );
 
 		if ( is_admin() ) {
-			( new SettingsPage( $this->settings(), $this->sanitizer() ) )->register();
+			$test_action = new ConnectionTestAction( $connection_test );
+			$test_action->register();
+			( new SettingsPage( $this->settings(), $test_action ) )->register();
+		}
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			( new Command( $connection_test ) )->register();
 		}
 	}
 
@@ -81,6 +95,13 @@ final class Plugin {
 	 */
 	public function settings(): Settings {
 		return $this->settings ??= new Settings( new Constants(), $this->crypto() );
+	}
+
+	/**
+	 * Client for the configured Nextcloud.
+	 */
+	public function client(): Client {
+		return new Client( $this->settings() );
 	}
 
 	/**
