@@ -426,14 +426,12 @@ final class ConnectionTest {
 	 * @param string $user User ID.
 	 */
 	private static function top_folder( string $href, string $user ): string {
-		$prefix = DavPath::files( $user );
-		if ( ! str_starts_with( $href, $prefix ) ) {
+		$relative = DavPath::relative( $href, DavPath::files( $user ) );
+		if ( null === $relative || ! str_contains( $relative, '/' ) ) {
 			return '';
 		}
-		$relative = substr( $href, strlen( $prefix ) );
-		$first    = strtok( $relative, '/' );
 
-		return false === $first || ! str_contains( $relative, '/' ) ? '' : rawurldecode( $first );
+		return explode( '/', $relative )[0];
 	}
 
 	/**

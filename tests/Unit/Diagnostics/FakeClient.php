@@ -35,6 +35,20 @@ final class FakeClient extends Client {
 	public ?Response $answers_head = null;
 
 	/**
+	 * Streamed answers by path: [status, headers, chunks] or an exception.
+	 *
+	 * @var array<string, array{0: int, 1: array<string, string>, 2: list<string>}|\Throwable>
+	 */
+	public array $streams = array();
+
+	/**
+	 * Conditional headers of the last stream() call.
+	 *
+	 * @var array<string, string>
+	 */
+	public array $last_stream_headers = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param array<string, Response|\Throwable> $answers Answers per request.
@@ -63,6 +77,27 @@ final class FakeClient extends Client {
 		$this->requests[] = "HEAD $path";
 
 		return $this->answers_head ?? new Response( 500, array(), '' );
+	}
+
+	public function stream( string $path, array $headers, callable $on_headers, callable $on_body ): int {
+		$this->requests[]          = "STREAM $path";
+		$this->last_stream_headers = $headers;
+		$answer                    = $this->streams[ $path ] ?? array( 404, array(), array() );
+		if ( $answer instanceof \Throwable ) {
+			throw $answer;
+		}
+		[ $status, $response_headers, $chunks ] = $answer;
+		if ( $on_headers( $status, $response_headers ) ) {
+			foreach ( $chunks as $chunk ) {
+				$on_body( $chunk );
+			}
+		}
+
+		return $status;
+	}
+
+	public function search_file_id( int $file_id ): Response {
+		return $this->answer( "SEARCHID $file_id" );
 	}
 
 	public function user(): string {

@@ -67,6 +67,25 @@ final class DavPath {
 	}
 
 	/**
+	 * Path of an href relative to a collection, independent of the base path of the Nextcloud
+	 * installation (hrefs include e.g. "/nextcloud" when Nextcloud runs in a sub-directory).
+	 *
+	 * @param string $href       Href from a multistatus response.
+	 * @param string $collection Collection path from this class (e.g. self::files( $user )).
+	 * @return string|null Decoded relative path ("" for the collection itself), null if outside.
+	 */
+	public static function relative( string $href, string $collection ): ?string {
+		$decoded_href       = rtrim( rawurldecode( $href ), '/' ) . '/';
+		$decoded_collection = rtrim( rawurldecode( $collection ), '/' ) . '/';
+		$position           = strpos( $decoded_href, $decoded_collection );
+		if ( false === $position ) {
+			return null;
+		}
+
+		return trim( substr( $decoded_href, $position + strlen( $decoded_collection ) ), '/' );
+	}
+
+	/**
 	 * Normalises a relative path into its segments.
 	 *
 	 * @param string $relative Relative path.

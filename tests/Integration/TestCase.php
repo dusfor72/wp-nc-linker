@@ -166,6 +166,9 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 				},
 			)
 		);
+		if ( 'HEAD' === $method ) {
+			curl_setopt( $handle, CURLOPT_NOBODY, true );
+		}
 		if ( null !== $form ) {
 			curl_setopt( $handle, CURLOPT_POSTFIELDS, http_build_query( $form ) );
 		} elseif ( null !== $raw_body ) {
@@ -181,6 +184,49 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 			'status'  => (int) $status,
 			'body'    => $body,
 			'headers' => $headers,
+		);
+	}
+
+	/**
+	 * Downloads a URL path and returns status, headers, size and SHA-1 without keeping the body.
+	 *
+	 * @param string $path Path below the site root.
+	 * @return array{status: int, headers: array<string, string>, size: int, sha1: string}
+	 */
+	protected function http_digest( string $path ): array {
+		$headers = array();
+		$size    = 0;
+		$hash    = hash_init( 'sha1' );
+		$handle  = curl_init( self::BASE . $path );
+		$this->assertNotFalse( $handle );
+		curl_setopt_array(
+			$handle,
+			array(
+				CURLOPT_HTTPHEADER     => array( 'Host: localhost:8080' ),
+				CURLOPT_TIMEOUT        => 300,
+				CURLOPT_HEADERFUNCTION => static function ( $curl, string $line ) use ( &$headers ): int {
+					$parts = explode( ':', $line, 2 );
+					if ( 2 === count( $parts ) ) {
+						$headers[ strtolower( trim( $parts[0] ) ) ] = trim( $parts[1] );
+					}
+					return strlen( $line );
+				},
+				CURLOPT_WRITEFUNCTION  => static function ( $curl, string $chunk ) use ( &$size, $hash ): int {
+					$size += strlen( $chunk );
+					hash_update( $hash, $chunk );
+					return strlen( $chunk );
+				},
+			)
+		);
+		curl_exec( $handle );
+		$status = (int) curl_getinfo( $handle, CURLINFO_RESPONSE_CODE );
+		curl_close( $handle );
+
+		return array(
+			'status'  => $status,
+			'headers' => $headers,
+			'size'    => $size,
+			'sha1'    => hash_final( $hash ),
 		);
 	}
 
@@ -235,6 +281,64 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 					'app_password' => \WpNcLinker\Config\Crypto::from_wordpress()->encrypt( $password ?? self::app_password() ),
 				)
 			)
+		);
+	}
+
+	/**
+	 * Removes all linked attachments of the test installation.
+	 */
+	protected static function delete_linked_attachments(): void {
+		$ids = get_posts(
+			array(
+				'post_type'      => 'attachment',
+				'post_status'    => 'any',
+				'fields'         => 'ids',
+				'posts_per_page' => -1,
+				'meta_key'       => \WpNcLinker\Media\Repository::META_FILE_ID, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Test cleanup.
+			)
+		);
+		foreach ( $ids as $id ) {
+			wp_delete_attachment( (int) $id, true );
+		}
+	}
+
+	/**
+	 * Direct request to Nextcloud (for setup and expected values; TLS verified with the system store).
+	 *
+	 * @param string                $method   HTTP method.
+	 * @param string                $path     Path below https://nextcloud.test.
+	 * @param string                $user     Nextcloud user.
+	 * @param string                $password Password or app password.
+	 * @param array<string, string> $headers  Request headers.
+	 * @phpstan-param non-empty-string $method
+	 * @return array{status: int, body: string}
+	 */
+	protected static function nextcloud( string $method, string $path, string $user, string $password, array $headers = array() ): array {
+		$handle = curl_init( 'https://nextcloud.test' . $path );
+		self::assertNotFalse( $handle );
+		$header_lines = array();
+		foreach ( $headers as $name => $value ) {
+			$header_lines[] = $name . ': ' . $value;
+		}
+		curl_setopt_array(
+			$handle,
+			array(
+				CURLOPT_CUSTOMREQUEST  => $method,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_USERPWD        => $user . ':' . $password,
+				CURLOPT_HTTPHEADER     => $header_lines,
+				CURLOPT_CAINFO         => '/etc/ssl/certs/ca-certificates.crt',
+				CURLOPT_TIMEOUT        => 120,
+			)
+		);
+		$body   = curl_exec( $handle );
+		$status = curl_getinfo( $handle, CURLINFO_RESPONSE_CODE );
+		curl_close( $handle );
+		self::assertIsString( $body );
+
+		return array(
+			'status' => (int) $status,
+			'body'   => $body,
 		);
 	}
 

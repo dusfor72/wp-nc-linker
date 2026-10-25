@@ -54,6 +54,24 @@ final class MultiStatus {
 	}
 
 	/**
+	 * Request body for a SEARCH of a file by its file ID in the user's file tree.
+	 *
+	 * @param string $scope   Scope href from DavPath::search_scope().
+	 * @param int    $file_id File ID.
+	 */
+	public static function search_by_id_body( string $scope, int $file_id ): string {
+		$href = htmlspecialchars( $scope, ENT_XML1 | ENT_QUOTES, 'UTF-8' );
+
+		return '<?xml version="1.0" encoding="UTF-8"?>'
+			. '<d:searchrequest xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">'
+			. '<d:basicsearch><d:select><d:prop>' . self::prop_list() . '</d:prop></d:select>'
+			. '<d:from><d:scope><d:href>' . $href . '</d:href><d:depth>infinity</d:depth></d:scope></d:from>'
+			. '<d:where><d:eq><d:prop><oc:fileid/></d:prop><d:literal>' . max( 0, $file_id ) . '</d:literal></d:eq></d:where>'
+			. '<d:orderby/><d:limit><d:nresults>5</d:nresults></d:limit>'
+			. '</d:basicsearch></d:searchrequest>';
+	}
+
+	/**
 	 * Parses a multistatus document.
 	 *
 	 * @param string $xml Response body.

@@ -38,6 +38,17 @@ final class FakeRepository extends Repository {
 	 */
 	public array $existing = array();
 
+	/**
+	 * Linked files returned by get(), by attachment ID.
+	 *
+	 * @var array<int, LinkedFile>
+	 */
+	public array $files = array();
+
+	public function get( int $attachment_id ): ?LinkedFile {
+		return $this->files[ $attachment_id ] ?? null;
+	}
+
 	public function find_by_file_id( int $file_id ): ?int {
 		return $this->existing[ $file_id ] ?? null;
 	}

@@ -170,7 +170,7 @@ class Browser {
 
 		$items = array();
 		foreach ( $entries as $entry ) {
-			if ( self::same_path( $entry->href, $path ) ) {
+			if ( '' === DavPath::relative( $entry->href, $path ) ) {
 				continue;
 			}
 			$item = $this->to_item( $area, $relative, $entry );
@@ -274,16 +274,6 @@ class Browser {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Whether an href denotes the requested collection itself.
-	 *
-	 * @param string $href Href from the response.
-	 * @param string $path Requested path.
-	 */
-	private static function same_path( string $href, string $path ): bool {
-		return rawurldecode( rtrim( $href, '/' ) ) === rawurldecode( rtrim( $path, '/' ) );
 	}
 
 	/**
