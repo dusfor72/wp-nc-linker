@@ -124,8 +124,9 @@ editing (crop/rotate) of linked files.
   `dev/bin/test-e2e.sh`, `npm run lint:js`.
 - Build: `npm run build`; translations: `dev/bin/i18n.sh` (needs WP-CLI and a current build);
   plugin zip: `dev/bin/build-zip.sh` → `dist/`.
-- Release: set the version in `wp-nc-linker.php` (header and `WPNCL_VERSION`) and `package.json`,
-  then push a tag `v<version>`; the release workflow builds the zip and publishes the release.
+- Release: set the version in `wp-nc-linker.php` (header and `WPNCL_VERSION`), `package.json`,
+  `package-lock.json` and `tests/phpstan-bootstrap.php`, run `dev/bin/i18n.sh`, then push a tag
+  `v<version>`; the release workflow builds the zip and publishes the release.
 
 ## License
 

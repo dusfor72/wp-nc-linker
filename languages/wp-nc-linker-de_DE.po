@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: WP Nextcloud Linker 0.1.0-dev\n"
+"Project-Id-Version: WP Nextcloud Linker 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
 "Last-Translator: \n"
 "Language-Team: German\n"
