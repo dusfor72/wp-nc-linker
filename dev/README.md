@@ -54,3 +54,14 @@ WordPress users: `admin`, `editor`, `author` (has `upload_files`), `subscriber`
   allowed) and `wordpress/mu-plugins/wpncl-dev-offline.php` disable the wordpress.org update
   checks and language list, which would otherwise log PHP warnings. WordPress runs in `en_US`;
   the plugin's own `de_DE` translation does not depend on core language packs being installed.
+
+## Integration tests
+
+```sh
+dev/bin/test-integration.sh   # PHPUnit inside the WordPress container, requests over HTTP like a browser
+```
+
+The tests create and delete their own users, roles and options. Filters and constants needed in
+web requests (`wpncl_settings_capability`, `WPNCL_*`) are switched through the dev-only
+mu-plugin `wordpress/mu-plugins/wpncl-dev-test-hooks.php`, which reads options named
+`wpncl_test_*`.

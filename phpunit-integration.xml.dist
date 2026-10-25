@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Integration tests: run inside the WordPress container, see dev/bin/test-integration.sh. -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+	bootstrap="tests/Integration/bootstrap.php"
+	cacheDirectory="/tmp/wpncl-phpunit-cache"
+	colors="true"
+	failOnWarning="true"
+	failOnNotice="true"
+	failOnDeprecation="true"
+	failOnRisky="true"
+	displayDetailsOnTestsThatTriggerWarnings="true"
+	displayDetailsOnTestsThatTriggerNotices="true"
+	displayDetailsOnTestsThatTriggerDeprecations="true">
+	<testsuites>
+		<testsuite name="integration">
+			<directory>tests/Integration</directory>
+		</testsuite>
+	</testsuites>
+	<source>
+		<include>
+			<directory>src</directory>
+		</include>
+	</source>
+</phpunit>

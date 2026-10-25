@@ -56,4 +56,9 @@
 	<rule ref="Squiz.Commenting.ClassComment.Missing">
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
+
+	<!-- Integration tests talk to the web server and write to STDERR directly. -->
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>/tests/Integration/*</exclude-pattern>
+	</rule>
 </ruleset>
