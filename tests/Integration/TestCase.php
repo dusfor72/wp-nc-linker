@@ -129,16 +129,18 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 	 * @param string                    $path    Path below the site root.
 	 * @param array<string, string>     $cookies Cookies.
 	 * @param array<string, mixed>|null $form    Form fields (POST).
+	 * @param list<string>              $extra_headers Additional request headers.
 	 * @phpstan-param non-empty-string $method
-	 * @return array{status: int, body: string}
+	 * @return array{status: int, body: string, headers: array<string, string>}
 	 */
-	protected function http( string $method, string $path, array $cookies = array(), ?array $form = null ): array {
+	protected function http( string $method, string $path, array $cookies = array(), ?array $form = null, array $extra_headers = array() ): array {
 		$cookie_header = array();
 		foreach ( $cookies as $name => $value ) {
 			$cookie_header[] = $name . '=' . rawurlencode( $value );
 		}
 
-		$handle = curl_init( self::BASE . $path );
+		$headers = array();
+		$handle  = curl_init( self::BASE . $path );
 		$this->assertNotFalse( $handle );
 		curl_setopt_array(
 			$handle,
@@ -147,10 +149,20 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 				CURLOPT_RETURNTRANSFER => true,
 				CURLOPT_FOLLOWLOCATION => false,
 				CURLOPT_TIMEOUT        => 30,
-				CURLOPT_HTTPHEADER     => array(
-					'Host: localhost:8080',
-					'Cookie: ' . implode( '; ', $cookie_header ),
+				CURLOPT_HTTPHEADER     => array_merge(
+					array(
+						'Host: localhost:8080',
+						'Cookie: ' . implode( '; ', $cookie_header ),
+					),
+					$extra_headers
 				),
+				CURLOPT_HEADERFUNCTION => static function ( $curl, string $line ) use ( &$headers ): int {
+					$parts = explode( ':', $line, 2 );
+					if ( 2 === count( $parts ) ) {
+						$headers[ strtolower( trim( $parts[0] ) ) ] = trim( $parts[1] );
+					}
+					return strlen( $line );
+				},
 			)
 		);
 		if ( null !== $form ) {
@@ -163,8 +175,63 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
 		$this->assertIsString( $body );
 
 		return array(
-			'status' => (int) $status,
-			'body'   => $body,
+			'status'  => (int) $status,
+			'body'    => $body,
+			'headers' => $headers,
+		);
+	}
+
+	/**
+	 * Nonce for a user's session (as WordPress would print it in a page).
+	 *
+	 * @param int                   $user_id User ID.
+	 * @param array<string, string> $cookies Login cookies of that user.
+	 * @param string                $action  Nonce action.
+	 */
+	protected function nonce( int $user_id, array $cookies, string $action ): string {
+		$previous_cookie             = $_COOKIE[ LOGGED_IN_COOKIE ] ?? null;
+		$_COOKIE[ LOGGED_IN_COOKIE ] = $cookies[ LOGGED_IN_COOKIE ];
+		wp_set_current_user( $user_id );
+		$nonce = wp_create_nonce( $action );
+		wp_set_current_user( 0 );
+		if ( null === $previous_cookie ) {
+			unset( $_COOKIE[ LOGGED_IN_COOKIE ] );
+		} else {
+			$_COOKIE[ LOGGED_IN_COOKIE ] = $previous_cookie;
+		}
+
+		return $nonce;
+	}
+
+	/**
+	 * App password of the connection account created by the seed (passed by dev/bin/test-integration.sh).
+	 */
+	protected static function app_password(): string {
+		$password = getenv( 'WPNCL_TEST_APP_PASSWORD' );
+		if ( ! is_string( $password ) || '' === $password ) {
+			self::fail( 'WPNCL_TEST_APP_PASSWORD missing; run the tests with dev/bin/test-integration.sh.' );
+		}
+
+		return $password;
+	}
+
+	/**
+	 * Stores the connection settings of the test environment (restored after the test).
+	 *
+	 * @param string|null $password App password (default: the seeded one).
+	 * @param string      $url      Nextcloud URL.
+	 */
+	protected function configure_connection( ?string $password = null, string $url = 'https://nextcloud.test' ): void {
+		$this->set_option(
+			\WpNcLinker\Config\Settings::OPTION,
+			array_merge(
+				\WpNcLinker\Config\Settings::defaults(),
+				array(
+					'url'          => $url,
+					'user'         => 'linker',
+					'app_password' => \WpNcLinker\Config\Crypto::from_wordpress()->encrypt( $password ?? self::app_password() ),
+				)
+			)
 		);
 	}
 
