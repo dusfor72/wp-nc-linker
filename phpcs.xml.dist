@@ -3,6 +3,7 @@
 	<description>WordPress Coding Standards for WP Nextcloud Linker.</description>
 
 	<file>wp-nc-linker.php</file>
+	<file>uninstall.php</file>
 	<file>src</file>
 	<file>tests</file>
 
