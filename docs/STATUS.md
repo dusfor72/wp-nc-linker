@@ -1,6 +1,6 @@
 # Status (handover between sessions)
 
-As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open points OP-1…OP-14:
+As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open points OP-1…OP-15:
 `docs/decisions.md`. Verified interfaces: `docs/nextcloud-interfaces.md`.
 
 ## Done (merged to `main`)
@@ -28,7 +28,7 @@ target system, not in CI.
 
 1. Install `v0.1.0` on the target system from the release zip (separately, per the server rules) and
    check acceptance test 13 there.
-2. Open points: OP-1…OP-14 in `docs/decisions.md` (e.g. OP-3 update path, OP-4 repository visibility).
+2. Open points: OP-1…OP-15 in `docs/decisions.md` (e.g. OP-3 update path, OP-4 repository visibility).
 3. Next release: raise the version (`wp-nc-linker.php` header + `WPNCL_VERSION`, `package.json`,
    `package-lock.json`, `tests/phpstan-bootstrap.php`), run `dev/bin/i18n.sh`, merge, push tag
    `v<version>`.
