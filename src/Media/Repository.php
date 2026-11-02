@@ -26,6 +26,7 @@ class Repository {
 	public const META_STATUS   = '_wpncl_status';
 	public const META_CHECKED  = '_wpncl_checked';
 	public const META_NAME     = '_wpncl_name';
+	public const META_REASON   = '_wpncl_reason';
 
 	/**
 	 * Attachment ID linked to a Nextcloud file ID, or null.
@@ -152,6 +153,9 @@ class Repository {
 		update_post_meta( $attachment_id, self::META_MODIFIED, $file->modified ?? 0 );
 		update_post_meta( $attachment_id, self::META_STATUS, $file->status );
 		update_post_meta( $attachment_id, self::META_CHECKED, time() );
+		if ( LinkedFile::STATUS_OK === $file->status ) {
+			delete_post_meta( $attachment_id, self::META_REASON );
+		}
 
 		$meta = array( 'file' => $file->slug() );
 		if ( null !== $file->size ) {
@@ -171,10 +175,28 @@ class Repository {
 	 *
 	 * @param int    $attachment_id Attachment ID.
 	 * @param string $status        LinkedFile::STATUS_*.
+	 * @param string $reason        Why the file is missing (CheckResult::REASON_*); ignored when OK.
 	 */
-	public function set_status( int $attachment_id, string $status ): void {
-		update_post_meta( $attachment_id, self::META_STATUS, LinkedFile::STATUS_MISSING === $status ? LinkedFile::STATUS_MISSING : LinkedFile::STATUS_OK );
+	public function set_status( int $attachment_id, string $status, string $reason = '' ): void {
+		$missing = LinkedFile::STATUS_MISSING === $status;
+		update_post_meta( $attachment_id, self::META_STATUS, $missing ? LinkedFile::STATUS_MISSING : LinkedFile::STATUS_OK );
 		update_post_meta( $attachment_id, self::META_CHECKED, time() );
+		if ( $missing && '' !== $reason ) {
+			update_post_meta( $attachment_id, self::META_REASON, $reason );
+		} elseif ( ! $missing ) {
+			delete_post_meta( $attachment_id, self::META_REASON );
+		}
+	}
+
+	/**
+	 * Why a linked attachment is missing ("" if unknown or not missing).
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 */
+	public function reason( int $attachment_id ): string {
+		$reason = get_post_meta( $attachment_id, self::META_REASON, true );
+
+		return is_string( $reason ) ? $reason : '';
 	}
 
 	/**

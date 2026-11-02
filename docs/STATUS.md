@@ -1,6 +1,6 @@
 # Status (handover between sessions)
 
-As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open points OP-1…OP-11:
+As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open points OP-1…OP-15:
 `docs/decisions.md`. Verified interfaces: `docs/nextcloud-interfaces.md`.
 
 ## Done (merged to `main`)
@@ -18,6 +18,7 @@ As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open p
 | F9/F10 | `wp nc-linker list [--status] [--format]`; `uninstall.php` (`Uninstaller`): options, cron, transients, linked media only with `delete_on_uninstall` | #10 |
 | i18n/README/zip | `de_DE` (Du-Form: PHP + media tab JSON), README, `dev/bin/i18n.sh`, `dev/bin/build-zip.sh`, CI zip job, release workflow on tag `v*` | #11 |
 | Release 0.1.0 | Version 0.1.0, tag `v0.1.0` (release workflow publishes the zip) | #12 |
+| Fixes after 0.1.0 | Missing-file report: path encoding test; OP-13 (proxy refuses "Hide download" originals), OP-14 (reason for missing files), OP-15 (`check` takes over changed file data) | #14 |
 
 Acceptance tests already covered by integration/E2E tests: 1, 1a, 2–12, 14.
 15 is covered by the CI job "Translations and plugin zip" (zip with built assets and `de_DE`, artifact
@@ -28,7 +29,7 @@ target system, not in CI.
 
 1. Install `v0.1.0` on the target system from the release zip (separately, per the server rules) and
    check acceptance test 13 there.
-2. Open points: OP-1…OP-11 in `docs/decisions.md` (e.g. OP-3 update path, OP-4 repository visibility).
+2. Open points: OP-1…OP-15 in `docs/decisions.md` (e.g. OP-3 update path, OP-4 repository visibility).
 3. Next release: raise the version (`wp-nc-linker.php` header + `WPNCL_VERSION`, `package.json`,
    `package-lock.json`, `tests/phpstan-bootstrap.php`), run `dev/bin/i18n.sh`, merge, push tag
    `v<version>`.

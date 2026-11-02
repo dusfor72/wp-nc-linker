@@ -14,6 +14,7 @@ use WpNcLinker\Media\LinkedFile;
 use WpNcLinker\Media\Locator;
 use WpNcLinker\Media\Repository;
 use WpNcLinker\Nextcloud\Client;
+use WpNcLinker\Nextcloud\DavEntry;
 use WpNcLinker\Nextcloud\InvalidResponseException;
 use WpNcLinker\Nextcloud\MultiStatus;
 use WpNcLinker\Nextcloud\NotConfiguredException;
@@ -22,10 +23,10 @@ use WpNcLinker\Nextcloud\TransportException;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Checks linked files against Nextcloud (F7): files at their stored source are OK, moved files
- * are found again by file ID, deleted files, revoked shares and shares without download
- * permission are marked missing. If Nextcloud is unreachable or the login fails, the run is
- * aborted without changing any status.
+ * Checks linked files against Nextcloud (F7): files at their stored source are OK (changed
+ * content updates the stored metadata), moved files are found again by file ID, deleted files,
+ * revoked shares and shares without download permission are marked missing with a reason. If
+ * Nextcloud is unreachable or the login fails, the run is aborted without changing any status.
  */
 class Checker {
 
@@ -58,7 +59,7 @@ class Checker {
 			}
 
 			try {
-				$outcome = $this->check_one( $attachment_id, $file );
+				$outcome = $this->check_one( $attachment_id, $file, $result );
 			} catch ( TransportException | NotConfiguredException | UnavailableException $e ) {
 				$result->aborted = $e instanceof UnavailableException ? $e->getMessage() : 'Nextcloud is not reachable.';
 				return $result;
@@ -71,28 +72,35 @@ class Checker {
 	}
 
 	/**
-	 * Checks one attachment and stores its status.
+	 * Checks one attachment and stores its status (and the reason if it is missing).
 	 *
-	 * @param int        $attachment_id Attachment ID.
-	 * @param LinkedFile $file          Stored data.
-	 * @return string CheckResult::OK, ::RELOCATED or ::MISSING.
+	 * @param int         $attachment_id Attachment ID.
+	 * @param LinkedFile  $file          Stored data.
+	 * @param CheckResult $result        Receives the reason of a missing file.
+	 * @return string CheckResult::OK, ::UPDATED, ::RELOCATED or ::MISSING.
 	 * @throws TransportException If Nextcloud cannot be reached.
 	 * @throws NotConfiguredException If the connection is not configured.
 	 * @throws UnavailableException If the login fails or Nextcloud answers with a server error.
 	 */
-	private function check_one( int $attachment_id, LinkedFile $file ): string {
+	private function check_one( int $attachment_id, LinkedFile $file, CheckResult $result ): string {
 		try {
 			$response = $this->client->propfind( $file->area->file_path( $this->client->user(), $file->path ), 0 );
 		} catch ( \InvalidArgumentException ) {
-			$this->repository->set_status( $attachment_id, LinkedFile::STATUS_MISSING );
-			return CheckResult::MISSING;
+			return $this->missing( $attachment_id, CheckResult::REASON_INVALID_PATH, $result );
 		}
 
 		self::assert_answered( $response->status );
 
-		if ( 207 === $response->status && $this->is_available( $response->body, $file ) ) {
-			$this->repository->set_status( $attachment_id, LinkedFile::STATUS_OK );
-			return CheckResult::OK;
+		$reason = 403 === $response->status ? CheckResult::REASON_FORBIDDEN : CheckResult::REASON_NOT_FOUND;
+		if ( 207 === $response->status ) {
+			$entry  = $this->entry( $response->body );
+			$reason = CheckResult::REASON_OTHER_FILE;
+			if ( null !== $entry && ! $entry->is_collection && $entry->file_id === $file->file_id ) {
+				if ( Area::Folders !== $file->area || $entry->download_allowed ) {
+					return $this->refresh( $attachment_id, $file, $entry );
+				}
+				$reason = CheckResult::REASON_NO_DOWNLOAD;
+			}
 		}
 
 		// Not at the stored source (or no longer downloadable there): look for it elsewhere.
@@ -101,8 +109,64 @@ class Checker {
 			return CheckResult::RELOCATED;
 		}
 
-		$this->repository->set_status( $attachment_id, LinkedFile::STATUS_MISSING );
+		return $this->missing( $attachment_id, $reason, $result );
+	}
+
+	/**
+	 * Marks an attachment missing.
+	 *
+	 * @param int         $attachment_id Attachment ID.
+	 * @param string      $reason        CheckResult::REASON_*.
+	 * @param CheckResult $result        Receives the reason.
+	 */
+	private function missing( int $attachment_id, string $reason, CheckResult $result ): string {
+		$this->repository->set_status( $attachment_id, LinkedFile::STATUS_MISSING, $reason );
+		$result->reasons[ $attachment_id ] = $reason;
+
 		return CheckResult::MISSING;
+	}
+
+	/**
+	 * Marks an available file OK and takes over changed metadata (new content uploaded to the
+	 * same file: same file ID, new ETag, size or modification time).
+	 *
+	 * @param int        $attachment_id Attachment ID.
+	 * @param LinkedFile $file          Stored data.
+	 * @param DavEntry   $entry         Current data from Nextcloud.
+	 * @return string CheckResult::OK or ::UPDATED.
+	 */
+	private function refresh( int $attachment_id, LinkedFile $file, DavEntry $entry ): string {
+		$etag = (string) $entry->etag;
+		// The ETag alone is not enough: Nextcloud keeps it for a change within the same second.
+		$changed = ( '' !== $etag && $etag !== $file->etag )
+			|| ( null !== $entry->size && $entry->size !== $file->size )
+			|| ( null !== $entry->last_modified && $entry->last_modified !== $file->modified );
+		// Images need their new dimensions; without them (Nextcloud has not analysed the new
+		// version yet, OP-9) the old data stays and the next check tries again.
+		$dimensions_known = ! $file->is_sized_image() || ( null !== $entry->width && null !== $entry->height );
+		if ( ! $changed || ! $dimensions_known ) {
+			$this->repository->set_status( $attachment_id, LinkedFile::STATUS_OK );
+			return CheckResult::OK;
+		}
+
+		$this->repository->save(
+			$attachment_id,
+			new LinkedFile(
+				file_id: $file->file_id,
+				area: $file->area,
+				path: $file->path,
+				mime: $file->mime,
+				name: $file->name,
+				size: $entry->size ?? $file->size,
+				width: $file->is_sized_image() ? $entry->width : $file->width,
+				height: $file->is_sized_image() ? $entry->height : $file->height,
+				etag: '' !== $etag ? $etag : $file->etag,
+				modified: $entry->last_modified ?? $file->modified,
+				status: LinkedFile::STATUS_OK,
+			)
+		);
+
+		return CheckResult::UPDATED;
 	}
 
 	/**
@@ -121,21 +185,15 @@ class Checker {
 	}
 
 	/**
-	 * Whether the PROPFIND answer shows the same, downloadable file.
+	 * First entry of a PROPFIND answer, or null.
 	 *
-	 * @param string     $body Multistatus body.
-	 * @param LinkedFile $file Stored data.
+	 * @param string $body Multistatus body.
 	 */
-	private function is_available( string $body, LinkedFile $file ): bool {
+	private function entry( string $body ): ?DavEntry {
 		try {
-			$entry = MultiStatus::parse( $body )[0] ?? null;
+			return MultiStatus::parse( $body )[0] ?? null;
 		} catch ( InvalidResponseException ) {
-			return false;
+			return null;
 		}
-
-		return null !== $entry
-			&& ! $entry->is_collection
-			&& $entry->file_id === $file->file_id
-			&& ( Area::Folders !== $file->area || $entry->download_allowed );
 	}
 }

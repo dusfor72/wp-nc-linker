@@ -53,6 +53,13 @@ final class FakeRepository extends Repository {
 	public array $statuses = array();
 
 	/**
+	 * Stored reasons of missing files by attachment ID.
+	 *
+	 * @var array<int, string>
+	 */
+	public array $reasons = array();
+
+	/**
 	 * IDs returned by ids_to_check().
 	 *
 	 * @var list<int>
@@ -77,8 +84,9 @@ final class FakeRepository extends Repository {
 		$this->saved[ $attachment_id ] = $file;
 	}
 
-	public function set_status( int $attachment_id, string $status ): void {
+	public function set_status( int $attachment_id, string $status, string $reason = '' ): void {
 		$this->statuses[ $attachment_id ] = $status;
+		$this->reasons[ $attachment_id ]  = $reason;
 	}
 
 	public function ids_to_check( int $limit = -1 ): array {
