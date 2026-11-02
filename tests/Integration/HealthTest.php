@@ -203,11 +203,20 @@ final class HealthTest extends TestCase {
 		$share = self::share( '/Update Share' );
 		$id    = self::link( 'Update Share/notes.pdf' );
 
+		$linked_etag = (string) get_post_meta( $id, Repository::META_ETAG, true );
+
 		// New content for the same file (as uploaded by the desktop client): same file ID, data taken over.
 		$second = '%PDF-1.4 second, longer version';
 		$this->assertSame( 204, self::nextcloud( 'PUT', self::UPDATE_FOLDER . '/notes.pdf', 'content', $password, array(), $second )['status'] );
-		$check = self::cli_check();
-		$this->assertSame( 'updated', $check['rows'][ $id ] ?? null, $check['output'] );
+		$current = self::nextcloud( 'PROPFIND', '/remote.php/dav/files/linker/Update%20Share/notes.pdf', 'linker', self::app_password(), array( 'Depth' => '0' ) );
+		$check   = self::cli_check();
+		wp_cache_delete( $id, 'post_meta' );
+		$this->assertSame(
+			'updated',
+			$check['rows'][ $id ] ?? null,
+			$check['output'] . "\nETag at linking: " . $linked_etag . "\nStored now: " . (string) get_post_meta( $id, Repository::META_ETAG, true )
+				. "\nNextcloud: " . (string) preg_replace( '/\s+/', ' ', $current['body'] )
+		);
 		wp_cache_delete( $id, 'post_meta' );
 		$this->assertSame( strlen( $second ), ( new Repository() )->get( $id )?->size );
 
