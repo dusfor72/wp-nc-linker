@@ -27,6 +27,9 @@ final class HealthTest extends TestCase {
 
 	private const FOLDER = '/remote.php/dav/files/content/Health%20Share';
 
+	// Own folder: a folder name that was shared, revoked and deleted is mounted as "… (2)" next time.
+	private const UPDATE_FOLDER = '/remote.php/dav/files/content/Update%20Share';
+
 	private const SHARES = '/ocs/v2.php/apps/files_sharing/api/v1/shares';
 
 	protected function setUp(): void {
@@ -39,6 +42,7 @@ final class HealthTest extends TestCase {
 		self::delete_linked_attachments();
 		self::nextcloud( 'DELETE', self::COPY, 'content', self::content_password() );
 		self::nextcloud( 'DELETE', self::FOLDER, 'content', self::content_password() );
+		self::nextcloud( 'DELETE', self::UPDATE_FOLDER, 'content', self::content_password() );
 		parent::tearDown();
 	}
 
@@ -194,14 +198,14 @@ final class HealthTest extends TestCase {
 
 	public function test_updated_content_and_hidden_download(): void {
 		$password = self::content_password();
-		$this->assertSame( 201, self::nextcloud( 'MKCOL', self::FOLDER, 'content', $password )['status'] );
-		$this->assertSame( 201, self::nextcloud( 'PUT', self::FOLDER . '/notes.pdf', 'content', $password, array(), '%PDF-1.4 first version' )['status'] );
-		$share = self::share( '/Health Share' );
-		$id    = self::link( 'Health Share/notes.pdf' );
+		$this->assertSame( 201, self::nextcloud( 'MKCOL', self::UPDATE_FOLDER, 'content', $password )['status'] );
+		$this->assertSame( 201, self::nextcloud( 'PUT', self::UPDATE_FOLDER . '/notes.pdf', 'content', $password, array(), '%PDF-1.4 first version' )['status'] );
+		$share = self::share( '/Update Share' );
+		$id    = self::link( 'Update Share/notes.pdf' );
 
 		// New content for the same file (as uploaded by the desktop client): same file ID, data taken over.
 		$second = '%PDF-1.4 second, longer version';
-		$this->assertSame( 204, self::nextcloud( 'PUT', self::FOLDER . '/notes.pdf', 'content', $password, array(), $second )['status'] );
+		$this->assertSame( 204, self::nextcloud( 'PUT', self::UPDATE_FOLDER . '/notes.pdf', 'content', $password, array(), $second )['status'] );
 		$check = self::cli_check();
 		$this->assertSame( 'updated', $check['rows'][ $id ] ?? null, $check['output'] );
 		wp_cache_delete( $id, 'post_meta' );
