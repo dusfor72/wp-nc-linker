@@ -15,8 +15,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use WpNcLinker\Browse\Area;
 use WpNcLinker\Config\Crypto;
 use WpNcLinker\Config\Settings;
+use WpNcLinker\Health\CheckResult;
 use WpNcLinker\Media\LinkedFile;
 use WpNcLinker\Media\Locator;
+use WpNcLinker\Nextcloud\Response;
 use WpNcLinker\Nextcloud\TransportException;
 use WpNcLinker\Proxy\Controller;
 use WpNcLinker\Proxy\Placeholder;
@@ -34,6 +36,7 @@ final class ControllerTest extends TestCase {
 
 	private const FOREST  = '/remote.php/dav/files/linker/Shared%20With%20Linker/forest.jpg';
 	private const PREVIEW = '/index.php/apps/photos/api/v1/preview/102?x=256&y=171';
+	private const REPORT  = '/remote.php/dav/files/linker/Docs/report.pdf';
 
 	/**
 	 * Client double.
@@ -279,6 +282,52 @@ final class ControllerTest extends TestCase {
 
 		$document = $this->request( 11, 'full', 'Report-2026.pdf' );
 		$this->assertSame( 404, $document->status );
+	}
+
+	/**
+	 * PROPFIND answer for a folder file.
+	 *
+	 * @param int  $file_id  File ID at the path.
+	 * @param bool $download Download allowed.
+	 */
+	private static function at_path( int $file_id, bool $download ): Response {
+		return new Response(
+			207,
+			array(),
+			'<?xml version="1.0"?><d:multistatus xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">'
+				. '<d:response><d:href>/x</d:href><d:propstat><d:prop><d:resourcetype/><oc:fileid>' . $file_id . '</oc:fileid>'
+				. '<nc:share-attributes>' . ( $download ? '[]' : '[{"scope":"permissions","key":"download","value":false}]' ) . '</nc:share-attributes>'
+				. '</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>'
+		);
+	}
+
+	public function test_originals_of_shares_without_download_permission_are_refused(): void {
+		$this->client = new FakeClient(
+			array(
+				'PROPFIND ' . self::FOREST . ' 0' => self::at_path( 102, false ),
+				'PROPFIND ' . self::REPORT . ' 0' => self::at_path( 300, false ),
+			)
+		);
+
+		$this->client->streams[ self::FOREST ] = array( 200, array(), array( 'image' ) );
+		$this->client->streams[ self::REPORT ] = array( 200, array(), array( '%PDF' ) );
+		Actions\expectDone( 'wpncl_file_unavailable' )->twice()->with( \Mockery::type( 'int' ), 403, CheckResult::REASON_NO_DOWNLOAD );
+
+		$image = $this->request( 10, 'full', 'forest.jpg' );
+		$this->assertSame( Placeholder::svg( 2400, 1600 ), $image->body );
+		$this->assertSame( 404, $this->request( 11, 'full', 'Report-2026.pdf' )->status );
+		$this->assertNotContains( 'STREAM ' . self::FOREST, $this->client->requests );
+	}
+
+	public function test_other_file_at_the_stored_path_is_not_delivered(): void {
+		$this->client = new FakeClient( array( 'PROPFIND ' . self::FOREST . ' 0' => self::at_path( 999, true ) ) );
+
+		$this->client->streams[ self::FOREST ] = array( 200, array(), array( 'other file' ) );
+
+		$this->relocated = new LinkedFile( 102, Area::Folders, 'New/forest.jpg', 'image/jpeg', 'forest.jpg', 85213, 2400, 1600 );
+		$this->client->streams['/remote.php/dav/files/linker/New/forest.jpg'] = array( 200, array(), array( 'moved' ) );
+
+		$this->assertSame( 'moved', $this->request( 10, 'full', 'forest.jpg' )->body );
 	}
 
 	public function test_unreachable_nextcloud(): void {

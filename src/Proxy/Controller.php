@@ -9,11 +9,15 @@ declare(strict_types=1);
 
 namespace WpNcLinker\Proxy;
 
+use WpNcLinker\Browse\Area;
 use WpNcLinker\Config\Settings;
+use WpNcLinker\Health\CheckResult;
 use WpNcLinker\Media\LinkedFile;
 use WpNcLinker\Media\Locator;
 use WpNcLinker\Media\Repository;
 use WpNcLinker\Nextcloud\Client;
+use WpNcLinker\Nextcloud\InvalidResponseException;
+use WpNcLinker\Nextcloud\MultiStatus;
 use WpNcLinker\Nextcloud\NotConfiguredException;
 use WpNcLinker\Nextcloud\TransportException;
 
@@ -36,6 +40,18 @@ final class Controller {
 	private const PREVIEW_TYPES = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif' );
 
 	private const PLACEHOLDER_MAX_AGE = 300;
+
+	// What the stored path of a folder file holds (original_state()).
+	private const AVAILABLE   = 'available';
+	private const NO_DOWNLOAD = 'no_download';
+	private const OTHER_FILE  = 'other_file';
+
+	/**
+	 * Whether the current request was refused because the share no longer allows downloads.
+	 *
+	 * @var bool
+	 */
+	private bool $download_refused = false;
 
 	/**
 	 * Constructor.
@@ -144,8 +160,9 @@ final class Controller {
 			return;
 		}
 
-		$head        = 'HEAD' === $method;
-		$conditional = self::safe_conditional( $conditional );
+		$head                   = 'HEAD' === $method;
+		$conditional            = self::safe_conditional( $conditional );
+		$this->download_refused = false;
 
 		// Whether Nextcloud reported the file itself as missing or forbidden. A missing preview
 		// (404 from the preview route) does not mean that the file is missing.
@@ -183,10 +200,11 @@ final class Controller {
 			/**
 			 * Fires when Nextcloud reports a linked file as missing or forbidden.
 			 *
-			 * @param int $attachment_id Attachment ID.
-			 * @param int $status        HTTP status from Nextcloud (403 or 404).
+			 * @param int    $attachment_id Attachment ID.
+			 * @param int    $status        HTTP status from Nextcloud (403 or 404).
+			 * @param string $reason        CheckResult::REASON_* if known, otherwise "".
 			 */
-			do_action( 'wpncl_file_unavailable', $attachment_id, $status );
+			do_action( 'wpncl_file_unavailable', $attachment_id, $status, $this->download_refused ? CheckResult::REASON_NO_DOWNLOAD : '' );
 		}
 
 		// Permanent answers (missing file, no preview) may be cached briefly; temporary errors not.
@@ -199,7 +217,9 @@ final class Controller {
 	}
 
 	/**
-	 * Streams the original; relocates the file once if it was moved.
+	 * Streams the original; relocates the file once if it was moved. Originals from folder shares
+	 * without download permission are refused like the previews (Nextcloud itself still delivers
+	 * them over WebDAV), so the proxy and the check agree.
 	 *
 	 * @param int                   $attachment_id Attachment ID.
 	 * @param LinkedFile            $linked        File.
@@ -209,7 +229,15 @@ final class Controller {
 	 * @return int|null Null if a response was sent, otherwise the failing upstream status.
 	 */
 	private function serve_original( int $attachment_id, LinkedFile $linked, array $conditional, bool $head, ResponseWriter $out ): ?int {
-		$status = $this->stream( $linked->area->file_path( $this->client->user(), $linked->path ), $conditional, $linked, false, $head, $out );
+		$state = $this->original_state( $linked );
+		if ( self::NO_DOWNLOAD === $state ) {
+			$this->download_refused = true;
+			return 403;
+		}
+
+		$status = self::OTHER_FILE === $state
+			? 404
+			: $this->stream( $linked->area->file_path( $this->client->user(), $linked->path ), $conditional, $linked, false, $head, $out );
 		if ( 404 !== $status ) {
 			return $status;
 		}
@@ -290,6 +318,40 @@ final class Controller {
 		if ( isset( $headers['last-modified'] ) && false !== strtotime( $headers['last-modified'] ) ) {
 			$out->header( 'Last-Modified', gmdate( 'D, d M Y H:i:s', (int) strtotime( $headers['last-modified'] ) ) . ' GMT' );
 		}
+	}
+
+	/**
+	 * State of the stored path of a folder file: the linked file with download permission, the
+	 * linked file without it, or another file. Anything else (404, unexpected answers) is left to
+	 * the GET, which reports it.
+	 *
+	 * @param LinkedFile $linked File.
+	 * @return string self::AVAILABLE, ::NO_DOWNLOAD or ::OTHER_FILE.
+	 * @throws NotConfiguredException If the connection is not configured.
+	 * @throws TransportException If Nextcloud cannot be reached.
+	 */
+	private function original_state( LinkedFile $linked ): string {
+		if ( Area::Folders !== $linked->area ) {
+			return self::AVAILABLE;
+		}
+
+		$response = $this->client->propfind( $linked->area->file_path( $this->client->user(), $linked->path ), 0 );
+		if ( 207 !== $response->status ) {
+			return self::AVAILABLE;
+		}
+		try {
+			$entry = MultiStatus::parse( $response->body )[0] ?? null;
+		} catch ( InvalidResponseException ) {
+			return self::AVAILABLE;
+		}
+		if ( null === $entry ) {
+			return self::AVAILABLE;
+		}
+		if ( null !== $entry->file_id && $entry->file_id !== $linked->file_id ) {
+			return self::OTHER_FILE;
+		}
+
+		return $entry->download_allowed ? self::AVAILABLE : self::NO_DOWNLOAD;
 	}
 
 	/**
