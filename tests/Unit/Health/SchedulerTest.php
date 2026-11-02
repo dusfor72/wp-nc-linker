@@ -13,6 +13,7 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\Attributes\CoversClass;
 use WpNcLinker\Browse\Area;
 use WpNcLinker\Health\Checker;
+use WpNcLinker\Health\CheckResult;
 use WpNcLinker\Health\Scheduler;
 use WpNcLinker\Media\LinkedFile;
 use WpNcLinker\Media\Locator;
@@ -166,16 +167,20 @@ final class SchedulerTest extends TestCase {
 	public function test_proxy_notifications_set_the_status(): void {
 		$scheduler = $this->scheduler();
 
-		$scheduler->mark_missing( 4 );
+		$scheduler->mark_missing( 4, 403 );
+		$scheduler->mark_missing( 6, 403, CheckResult::REASON_NO_DOWNLOAD );
 		$scheduler->mark_available( 5 );
 
 		$this->assertSame(
 			array(
 				4 => LinkedFile::STATUS_MISSING,
+				6 => LinkedFile::STATUS_MISSING,
 				5 => LinkedFile::STATUS_OK,
 			),
 			$this->repository->statuses
 		);
+		$this->assertSame( CheckResult::REASON_FORBIDDEN, $this->repository->reasons[4] );
+		$this->assertSame( CheckResult::REASON_NO_DOWNLOAD, $this->repository->reasons[6] );
 	}
 
 	public function test_recurrence_falls_back_to_daily(): void {

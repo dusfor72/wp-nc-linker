@@ -54,7 +54,7 @@ final class Scheduler {
 		add_action( 'init', array( $this, 'ensure_scheduled' ) );
 		add_action( self::EVENT, array( $this, 'start_cycle' ) );
 		add_action( self::CONTINUE_EVENT, array( $this, 'continue_cycle' ) );
-		add_action( 'wpncl_file_unavailable', array( $this, 'mark_missing' ) );
+		add_action( 'wpncl_file_unavailable', array( $this, 'mark_missing' ), 10, 3 );
 		add_action( 'wpncl_file_available', array( $this, 'mark_available' ) );
 	}
 
@@ -133,12 +133,17 @@ final class Scheduler {
 	}
 
 	/**
-	 * The proxy received 403/404 for the original.
+	 * The proxy received 403/404 for the original (or the share no longer allows downloads).
 	 *
-	 * @param int $attachment_id Attachment ID.
+	 * @param int    $attachment_id Attachment ID.
+	 * @param int    $status        HTTP status from Nextcloud.
+	 * @param string $reason        CheckResult::REASON_* (empty: derived from the status).
 	 */
-	public function mark_missing( $attachment_id ): void {
-		$this->repository->set_status( (int) $attachment_id, LinkedFile::STATUS_MISSING );
+	public function mark_missing( $attachment_id, $status = 404, $reason = '' ): void {
+		if ( ! is_string( $reason ) || '' === $reason ) {
+			$reason = 403 === (int) $status ? CheckResult::REASON_FORBIDDEN : CheckResult::REASON_NOT_FOUND;
+		}
+		$this->repository->set_status( (int) $attachment_id, LinkedFile::STATUS_MISSING, $reason );
 	}
 
 	/**

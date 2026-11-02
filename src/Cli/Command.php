@@ -69,7 +69,7 @@ final class Command {
 			'nc-linker check',
 			array( $this, 'check' ),
 			array(
-				'shortdesc' => 'Checks all linked files against Nextcloud and marks missing ones (for servers that run this from a timer instead of WP-Cron).',
+				'shortdesc' => 'Checks all linked files against Nextcloud, takes over changed file data and marks missing ones with a reason (for servers that run this from a timer instead of WP-Cron).',
 				'synopsis'  => array( self::format_argument() ),
 			)
 		);
@@ -115,6 +115,7 @@ final class Command {
 				'id'      => $id,
 				'title'   => get_the_title( $id ),
 				'status'  => $file->status,
+				'reason'  => LinkedFile::STATUS_MISSING === $file->status ? $this->repository->reason( $id ) : '',
 				'mime'    => $file->mime,
 				'source'  => $file->area->value . ':' . $file->path,
 				'file_id' => $file->file_id,
@@ -122,7 +123,7 @@ final class Command {
 			);
 		}
 
-		WP_CLI\Utils\format_items( $assoc_args['format'] ?? 'table', $rows, array( 'id', 'title', 'status', 'mime', 'source', 'file_id', 'checked' ) );
+		WP_CLI\Utils\format_items( $assoc_args['format'] ?? 'table', $rows, array( 'id', 'title', 'status', 'reason', 'mime', 'source', 'file_id', 'checked' ) );
 	}
 
 	/**
@@ -140,11 +141,12 @@ final class Command {
 			$rows[] = array(
 				'id'      => $id,
 				'status'  => $outcome,
+				'reason'  => $result->reasons[ $id ] ?? '',
 				'source'  => null === $file ? '' : $file->area->value . ':' . $file->path,
 				'file_id' => null === $file ? '' : $file->file_id,
 			);
 		}
-		WP_CLI\Utils\format_items( $assoc_args['format'] ?? 'table', $rows, array( 'id', 'status', 'source', 'file_id' ) );
+		WP_CLI\Utils\format_items( $assoc_args['format'] ?? 'table', $rows, array( 'id', 'status', 'reason', 'source', 'file_id' ) );
 
 		if ( null !== $result->aborted ) {
 			WP_CLI::error( 'Check aborted, no status was changed for the remaining files: ' . $result->aborted );
@@ -152,8 +154,9 @@ final class Command {
 		if ( 'table' === ( $assoc_args['format'] ?? 'table' ) ) {
 			WP_CLI::success(
 				sprintf(
-					'%d checked, %d moved, %d missing.',
+					'%d checked, %d updated, %d moved, %d missing.',
 					count( $result->outcomes ),
+					$result->count( HealthResult::UPDATED ),
 					$result->count( HealthResult::RELOCATED ),
 					$result->count( HealthResult::MISSING )
 				)
