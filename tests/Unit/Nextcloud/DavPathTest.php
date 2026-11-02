@@ -27,6 +27,15 @@ final class DavPathTest extends TestCase {
 		$this->assertSame( '/remote.php/dav/files/linker/Folder/', DavPath::files( 'linker', 'Folder/' ) );
 	}
 
+	public function test_names_with_spaces_and_dots_round_trip_below_a_share_mount(): void {
+		$relative = 'Shares/Membership form Example e.V.-v1-1.pdf';
+		$path     = DavPath::files( 'linker', $relative );
+
+		$this->assertSame( '/remote.php/dav/files/linker/Shares/Membership%20form%20Example%20e.V.-v1-1.pdf', $path );
+		// Hrefs come back URL-encoded (here with a sub-path installation); the stored path is the decoded one.
+		$this->assertSame( $relative, DavPath::relative( '/nextcloud' . $path, DavPath::files( 'linker' ) ) );
+	}
+
 	public function test_photos_paths(): void {
 		$this->assertSame( '/remote.php/dav/photos/linker/albums/', DavPath::photos( 'linker', DavPath::ALBUMS ) );
 		$this->assertSame(
