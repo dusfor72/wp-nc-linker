@@ -192,6 +192,38 @@ final class HealthTest extends TestCase {
 		$this->assertSame( LinkedFile::STATUS_OK, self::stored_status( $revoked ) );
 	}
 
+	public function test_updated_content_and_hidden_download(): void {
+		$password = self::content_password();
+		$this->assertSame( 201, self::nextcloud( 'MKCOL', self::FOLDER, 'content', $password )['status'] );
+		$this->assertSame( 201, self::nextcloud( 'PUT', self::FOLDER . '/notes.pdf', 'content', $password, array(), '%PDF-1.4 first version' )['status'] );
+		$share = self::share( '/Health Share' );
+		$id    = self::link( 'Health Share/notes.pdf' );
+
+		// New content for the same file (as uploaded by the desktop client): same file ID, data taken over.
+		$second = '%PDF-1.4 second, longer version';
+		$this->assertSame( 204, self::nextcloud( 'PUT', self::FOLDER . '/notes.pdf', 'content', $password, array(), $second )['status'] );
+		$check = self::cli_check();
+		$this->assertSame( 'updated', $check['rows'][ $id ] ?? null, $check['output'] );
+		wp_cache_delete( $id, 'post_meta' );
+		$this->assertSame( strlen( $second ), ( new Repository() )->get( $id )?->size );
+
+		// "Hide download" on the share: neither delivered nor reported as available.
+		$hidden = self::nextcloud(
+			'PUT',
+			self::SHARES . '/' . $share . '?format=json',
+			'content',
+			$password,
+			array( 'OCS-APIRequest' => 'true' ),
+			http_build_query( array( 'attributes' => '[{"scope":"permissions","key":"download","value":false}]' ) )
+		);
+		$this->assertSame( 200, $hidden['status'], $hidden['body'] );
+		$this->assertSame( 404, $this->http( 'GET', (string) wp_parse_url( (string) wp_get_attachment_url( $id ), PHP_URL_PATH ) )['status'] );
+
+		$check = self::cli_check();
+		$this->assertSame( 'missing', $check['rows'][ $id ] ?? null, $check['output'] );
+		$this->assertSame( 'download_not_allowed', array_column( self::cli_list( '--status=missing' ), 'reason', 'id' )[ $id ] ?? null );
+	}
+
 	public function test_cli_lists_linked_media(): void {
 		$ok      = self::link( 'Shared With Linker/forest.jpg' );
 		$missing = self::link( 'Shared With Linker/harbor.jpg' );

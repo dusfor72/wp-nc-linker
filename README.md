@@ -77,12 +77,26 @@ Users who may only link files see neither the settings nor the connection data.
 
 ```sh
 wp nc-linker test  [--format=<table|json|csv|yaml>]   # Connection test; exit code 1 on errors.
-wp nc-linker check [--format=…]                       # Checks all linked files, marks missing ones.
-wp nc-linker list  [--status=<ok|missing>] [--format=…]  # Linked media with source and status.
+wp nc-linker check [--format=…]                       # Checks all linked files, updates changed ones, marks missing ones.
+wp nc-linker list  [--status=<ok|missing>] [--format=…]  # Linked media with source, status and reason.
 ```
 
 The availability check also runs daily via WP-Cron (in batches). Servers that run WP-Cron from a
 system timer or not at all can call `wp nc-linker check` from their own timer instead.
+
+Missing files carry a reason in `check` and `list`:
+
+| Reason | Meaning |
+|---|---|
+| `not_found` | Nothing at the stored path and the file ID is not reachable: deleted, share removed, or replaced by a new upload (a new upload gets a new file ID; link the new file instead). |
+| `forbidden` | Nextcloud denies access (HTTP 403). |
+| `download_not_allowed` | The share no longer allows downloads ("Hide download"); the file is not delivered. |
+| `other_file_at_path` | Another file now has the stored name and the original file ID is not reachable. |
+| `invalid_path` | The stored path is not valid. |
+
+Files whose content changed in Nextcloud (same file ID, e.g. updated through the desktop client)
+stay linked; `check` takes over the new size and image dimensions (`updated`). Browsers may still
+show the old version until their cache lifetime ends (*Browser cache lifetime*, default one day).
 
 ## Hooks
 
@@ -99,7 +113,7 @@ system timer or not at all can call `wp nc-linker check` from their own timer in
 | `wpncl_check_recurrence` | filter | WP-Cron recurrence of the availability check (default `daily`). |
 | `wpncl_http_timeout` | filter | Timeout of requests to Nextcloud (default 15 s). |
 | `wpncl_ca_bundle` | filter | CA bundle for verifying the Nextcloud certificate. |
-| `wpncl_file_unavailable` | action | A linked file was reported missing/forbidden by Nextcloud. |
+| `wpncl_file_unavailable` | action | A linked file was reported missing/forbidden by Nextcloud (attachment ID, HTTP status, reason). |
 | `wpncl_file_available` | action | A file marked missing was delivered again. |
 
 ## Uninstall
