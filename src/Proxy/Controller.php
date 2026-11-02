@@ -160,9 +160,9 @@ final class Controller {
 			return;
 		}
 
-		$head                   = 'HEAD' === $method;
-		$conditional            = self::safe_conditional( $conditional );
-		$this->download_refused = false;
+		$head        = 'HEAD' === $method;
+		$conditional = self::safe_conditional( $conditional );
+		$this->set_download_refused( false );
 
 		// Whether Nextcloud reported the file itself as missing or forbidden. A missing preview
 		// (404 from the preview route) does not mean that the file is missing.
@@ -204,7 +204,7 @@ final class Controller {
 			 * @param int    $status        HTTP status from Nextcloud (403 or 404).
 			 * @param string $reason        CheckResult::REASON_* if known, otherwise "".
 			 */
-			do_action( 'wpncl_file_unavailable', $attachment_id, $status, $this->download_refused ? CheckResult::REASON_NO_DOWNLOAD : '' );
+			do_action( 'wpncl_file_unavailable', $attachment_id, $status, $this->download_refused() ? CheckResult::REASON_NO_DOWNLOAD : '' );
 		}
 
 		// Permanent answers (missing file, no preview) may be cached briefly; temporary errors not.
@@ -231,7 +231,7 @@ final class Controller {
 	private function serve_original( int $attachment_id, LinkedFile $linked, array $conditional, bool $head, ResponseWriter $out ): ?int {
 		$state = $this->original_state( $linked );
 		if ( self::NO_DOWNLOAD === $state ) {
-			$this->download_refused = true;
+			$this->set_download_refused( true );
 			return 403;
 		}
 
@@ -318,6 +318,22 @@ final class Controller {
 		if ( isset( $headers['last-modified'] ) && false !== strtotime( $headers['last-modified'] ) ) {
 			$out->header( 'Last-Modified', gmdate( 'D, d M Y H:i:s', (int) strtotime( $headers['last-modified'] ) ) . ' GMT' );
 		}
+	}
+
+	/**
+	 * Whether the current request was refused because the share allows no downloads.
+	 */
+	private function download_refused(): bool {
+		return $this->download_refused;
+	}
+
+	/**
+	 * Records whether the current request was refused because the share allows no downloads.
+	 *
+	 * @param bool $refused Refused.
+	 */
+	private function set_download_refused( bool $refused ): void {
+		$this->download_refused = $refused;
 	}
 
 	/**
