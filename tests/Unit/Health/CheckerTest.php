@@ -147,6 +147,17 @@ final class CheckerTest extends TestCase {
 		$this->assertSame( array( 'e2', 2000, 1200, 900, 'Photos/forest.jpg' ), array( $saved->etag, $saved->size, $saved->width, $saved->height, $saved->path ) );
 	}
 
+	public function test_change_within_the_same_second_is_detected_by_the_size(): void {
+		$repository = null;
+		$same_etag  = '<d:getetag>"e1"</d:getetag><d:getcontentlength>2000</d:getcontentlength>'
+			. '<nc:metadata-photos-size><width>2400</width><height>1600</height></nc:metadata-photos-size>';
+		$result     = self::check( array( self::SOURCE => self::found( '/remote.php/dav/files/linker/Photos/forest.jpg', 102, true, $same_etag ) ), $repository );
+
+		$this->assertSame( array( 7 => CheckResult::UPDATED ), $result->outcomes );
+		$this->assertNotNull( $repository );
+		$this->assertSame( 2000, $repository->saved[7]->size );
+	}
+
 	public function test_changed_image_without_known_dimensions_is_checked_again_later(): void {
 		$repository = null;
 		$result     = self::check( array( self::SOURCE => self::found( '/remote.php/dav/files/linker/Photos/forest.jpg', 102, true, '<d:getetag>"e2"</d:getetag>' ) ), $repository );

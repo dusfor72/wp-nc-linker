@@ -128,7 +128,7 @@ class Checker {
 
 	/**
 	 * Marks an available file OK and takes over changed metadata (new content uploaded to the
-	 * same file: same file ID, new ETag).
+	 * same file: same file ID, new ETag, size or modification time).
 	 *
 	 * @param int        $attachment_id Attachment ID.
 	 * @param LinkedFile $file          Stored data.
@@ -137,10 +137,14 @@ class Checker {
 	 */
 	private function refresh( int $attachment_id, LinkedFile $file, DavEntry $entry ): string {
 		$etag = (string) $entry->etag;
+		// The ETag alone is not enough: Nextcloud keeps it for a change within the same second.
+		$changed = ( '' !== $etag && $etag !== $file->etag )
+			|| ( null !== $entry->size && $entry->size !== $file->size )
+			|| ( null !== $entry->last_modified && $entry->last_modified !== $file->modified );
 		// Images need their new dimensions; without them (Nextcloud has not analysed the new
 		// version yet, OP-9) the old data stays and the next check tries again.
 		$dimensions_known = ! $file->is_sized_image() || ( null !== $entry->width && null !== $entry->height );
-		if ( '' === $etag || $etag === $file->etag || ! $dimensions_known ) {
+		if ( ! $changed || ! $dimensions_known ) {
 			$this->repository->set_status( $attachment_id, LinkedFile::STATUS_OK );
 			return CheckResult::OK;
 		}
@@ -156,7 +160,7 @@ class Checker {
 				size: $entry->size ?? $file->size,
 				width: $file->is_sized_image() ? $entry->width : $file->width,
 				height: $file->is_sized_image() ? $entry->height : $file->height,
-				etag: $etag,
+				etag: '' !== $etag ? $etag : $file->etag,
 				modified: $entry->last_modified ?? $file->modified,
 				status: LinkedFile::STATUS_OK,
 			)
