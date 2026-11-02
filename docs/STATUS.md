@@ -1,6 +1,6 @@
 # Status (handover between sessions)
 
-As of 2026-10-25. Binding rules: `docs/START.md`. Decisions D-1…D-6 and open points OP-1…OP-15:
+As of 2026-11-02 (release 0.1.1). Binding rules: `docs/START.md`. Decisions D-1…D-6 and open points OP-1…OP-15:
 `docs/decisions.md`. Verified interfaces: `docs/nextcloud-interfaces.md`.
 
 ## Done (merged to `main`)
@@ -28,15 +28,34 @@ target system, not in CI.
 
 ## Next steps
 
-1. Install `v0.1.0` on the target system from the release zip (separately, per the server rules) and
-   check acceptance test 13 there.
-2. Open points: OP-1…OP-15 in `docs/decisions.md` (e.g. OP-3 update path, OP-4 repository visibility).
+The planned scope (F1–F10, acceptance tests) is complete and released as 0.1.1 (GitHub release with
+zip). There is no assigned next task; candidates for the next session:
+
+1. Open points with the most practical value (details in `docs/decisions.md`):
+   - OP-12: help editors when a file was replaced by a new upload (suggest candidates or a
+     "replace link" action).
+   - OP-14 (rest): show the reason for missing files in the dashboard widget.
+   - OP-15 (rest): version part in proxy URLs, so changed files are not served from browser caches.
+   - OP-7: `Range` support in the proxy (large PDFs, resumable downloads; prerequisite for OP-1).
+   - OP-3: update check for installations without wordpress.org.
+2. Decisions for the user: OP-2 (wordpress.org), OP-4 (repository visibility).
 3. Next release: raise the version (`wp-nc-linker.php` header + `WPNCL_VERSION`, `package.json`,
-   `package-lock.json`, `tests/phpstan-bootstrap.php`), run `dev/bin/i18n.sh`, merge, push tag
-   `v<version>`.
+   `package-lock.json`, `tests/phpstan-bootstrap.php`), run `dev/bin/i18n.sh`, merge. The tag
+   `v<version>` (or a GitHub release) is created by the user: sessions cannot push tags (HTTP 403).
+   The release workflow checks tag = plugin version and attaches the zip.
 4. New or changed strings: run `dev/bin/i18n.sh` (WP-CLI needed; locally the wp-cli.phar from
    `raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar` works through the proxy) and
    translate the new entries in `languages/wp-nc-linker-de_DE.po`; CI fails if the files are stale.
+
+Lessons from the 0.1.1 bug report (for future diagnosis):
+- A file "missing although it exists" was a new upload with a new file ID; `list --status=missing`
+  now shows the reason. Diagnose on the server with read-only `wp eval-file` scripts using
+  `Plugin::instance()->client()` (PROPFIND at the stored path, `search_file_id()`).
+- WP-CLI should run as the WordPress PHP user (`sudo -u <user> -- wp --path=<core dir> …`); with
+  `--allow-root`, check afterwards for root-owned files. `--path` must point to the directory with
+  `wp-load.php`; `wp-config.php` may be one level above it.
+- Nextcloud keeps the ETag for changes within the same second; a shared folder name that was
+  revoked and deleted is mounted as "… (2)" when shared again.
 
 F8 review result (entry points): REST `browse`/`thumb`/`attachments` → `permission_callback` with the
 select capability, cookie auth requires the `wp_rest` nonce; parent post only with `edit_post`;
@@ -56,6 +75,9 @@ attachments only). No AJAX handlers of their own.
 
 ## Dev environment notes
 
+- Docker Hub may answer 429 (rate limit); pull the images from `mirror.gcr.io/library/<image>` and
+  tag them with the original name, then run `dev/bin/setup.sh`. Containers have no internet access,
+  so PHPUnit cannot be installed there; full test runs happen in CI.
 - `dev/bin/setup.sh` starts and seeds everything (MariaDB, Nextcloud 34.0.4 with TLS via dev CA,
   WordPress 7.1.3 / PHP 8.4); `dev/bin/test-integration.sh [--filter X]`, `dev/bin/test-e2e.sh`.
 - Composer: GitHub zipballs return 403 through the proxy; a local, git-ignored `composer.local.json`
